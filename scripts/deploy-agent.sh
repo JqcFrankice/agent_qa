@@ -20,12 +20,11 @@ if ! flock -n 200; then
   exit 75
 fi
 
-# Load service env so PORT matches what the running service uses
+# Read PORT from the service env file without sourcing it into our shell —
+# sourcing would propagate NODE_ENV=production to the npm ci below, which
+# would skip devDependencies and break `npm run build` (no tsc).
 if [[ -f "${ENV_FILE}" ]]; then
-  set -a
-  # shellcheck disable=SC1090
-  . "${ENV_FILE}"
-  set +a
+  PORT="$(grep -E '^PORT=' "${ENV_FILE}" | tail -1 | cut -d= -f2-)"
 fi
 PORT="${PORT:-8080}"
 
