@@ -136,16 +136,16 @@ dist/
 .DS_Store
 ```
 
-- [ ] **Step 6：装依赖并验证 lint/typecheck 可跑（即使没有源文件）**
+- [ ] **Step 6：装依赖并验证脚手架本身能 load**
 
 Run:
 ```bash
 npm install
-npm run lint || true     # 没文件可能 0 输出，确认命令本身能跑
-npm run typecheck
+npm run lint || true       # 期望: ESLint 9 因 src/ tests/ 还不存在而报 "No files matching" 退出 2 — 这只代表配置 load 成功；Task 2 写完 src/logger.ts 后此命令会真正通过
+npm run typecheck || true  # 期望: tsc 报 TS18003 "No inputs were found" 退出 2 — 同样代表 tsconfig load 成功；Task 2 后会通过
 ```
 
-Expected：`npm install` 完成无报错；`npm run typecheck` 退出码 0（没有 .ts 文件时 tsc 也返回 0）。
+Expected：`npm install` 完成无 fatal 报错（npm audit 提示的 fastify/vitest 漏洞需 breaking-change 升级才能修，本 Phase 暂不处理，记入 spec 后续 phase）；`npm run lint` / `npm run typecheck` 因还没写代码会非 0 退出，那是预期。两条命令真正能 pass 的时间点是 Task 2 commit 之前。
 
 - [ ] **Step 7：Commit**
 
