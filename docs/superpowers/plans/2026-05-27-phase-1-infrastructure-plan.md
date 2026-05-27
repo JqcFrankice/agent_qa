@@ -542,6 +542,7 @@ git commit -m "feat(routes): add GET /version + build-info writer"
 - [ ] **Step 2：写 `src/routes/index.ts`**
 
 ```typescript
+import "@fastify/static";  // side-effect import: 触发 module augmentation 把 sendFile 合并到 FastifyReply
 import type { FastifyPluginAsync } from "fastify";
 
 const indexRoute: FastifyPluginAsync = async (app) => {
@@ -553,7 +554,7 @@ const indexRoute: FastifyPluginAsync = async (app) => {
 export default indexRoute;
 ```
 
-> `reply.sendFile` 由 `@fastify/static` plugin 注册到 reply 上；它会用注册时传入的 `root` 来定位文件，所以这里不必再传一次。
+> `reply.sendFile` 是 `@fastify/static` 通过 declaration merging 扩展到 `FastifyReply` 上的；运行时只要 `server.ts` 那边注册了 plugin 就有，但 TypeScript 静态检查需要本文件能"看到"那个 augmentation，所以加一行 side-effect import。否则 `tsc --noEmit` 会报 TS2339。
 
 - [ ] **Step 3：lint + typecheck**
 
