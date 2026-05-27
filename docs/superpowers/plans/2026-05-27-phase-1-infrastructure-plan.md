@@ -588,7 +588,7 @@ import { describe, it, expect, beforeAll } from "vitest";
 let buildApp: typeof import("../src/server.js").buildApp;
 
 beforeAll(async () => {
-  process.env.PORT = "0";
+  process.env.PORT = "8080";
   process.env.HOST = "127.0.0.1";
   process.env.NODE_ENV = "test";
   ({ buildApp } = await import("../src/server.js"));
@@ -626,7 +626,7 @@ Expected：FAIL，找不到 `../src/server.js`
 > Fastify 4.x 的选项名是 `logger`（直接吃 pino 实例或 bool 或 logger 配置）。Fastify 5.x 才改名为 `loggerInstance`。本项目锁 4.28，必须用 `logger`。
 
 ```typescript
-import Fastify, { type FastifyInstance } from "fastify";
+import Fastify from "fastify";
 import fastifyStatic from "@fastify/static";
 import { fileURLToPath } from "node:url";
 import { loadConfig } from "./config.js";
@@ -635,7 +635,10 @@ import healthRoute from "./routes/health.js";
 import versionRoute from "./routes/version.js";
 import indexRoute from "./routes/index.js";
 
-export async function buildApp(): Promise<FastifyInstance> {
+// 不显式标注返回类型：传入 pino 实例后 Fastify 实际推断出
+// FastifyInstance<..., Logger<never, boolean>>，与默认的 FastifyBaseLogger
+// 不兼容（fastify@4 + pino@9 的类型缝隙）。让 TS 推断更安全。
+export async function buildApp() {
   const config = loadConfig();
   const app = Fastify({ logger });
 
