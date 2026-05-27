@@ -58,11 +58,10 @@
   },
   "devDependencies": {
     "@types/node": "^22.7.4",
-    "@typescript-eslint/eslint-plugin": "^8.8.0",
-    "@typescript-eslint/parser": "^8.8.0",
     "eslint": "^9.11.1",
     "tsx": "^4.19.1",
     "typescript": "^5.6.2",
+    "typescript-eslint": "^8.8.0",
     "vitest": "^2.1.1"
   }
 }
@@ -93,24 +92,23 @@
 - [ ] **Step 3：写 `eslint.config.js`**
 
 ```javascript
-import tseslint from "@typescript-eslint/eslint-plugin";
-import tsparser from "@typescript-eslint/parser";
+import tseslint from "typescript-eslint";
 
-export default [
+export default tseslint.config(
+  ...tseslint.configs.recommended,
   {
     files: ["src/**/*.ts", "tests/**/*.ts"],
-    languageOptions: {
-      parser: tsparser,
-      parserOptions: { ecmaVersion: 2022, sourceType: "module" }
-    },
-    plugins: { "@typescript-eslint": tseslint },
     rules: {
-      ...tseslint.configs.recommended.rules,
       "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_" }]
     }
+  },
+  {
+    ignores: ["dist/", "node_modules/"]
   }
-];
+);
 ```
+
+> 用统一包 `typescript-eslint`（无前缀，v8 起的 flat-config 入口），它内部 re-export `parser` + `plugin`，并提供 `tseslint.config()` 帮你把多段配置拼好。直接拿 `@typescript-eslint/eslint-plugin` 在 v8 + ESLint 9 flat config 里 `.configs.recommended.rules` 拿不到。
 
 - [ ] **Step 4：写 `vitest.config.ts`**
 
@@ -624,6 +622,8 @@ Expected：FAIL，找不到 `../src/server.js`
 
 - [ ] **Step 3：实现 `src/server.ts`**
 
+> Fastify 4.x 的选项名是 `logger`（直接吃 pino 实例或 bool 或 logger 配置）。Fastify 5.x 才改名为 `loggerInstance`。本项目锁 4.28，必须用 `logger`。
+
 ```typescript
 import Fastify, { type FastifyInstance } from "fastify";
 import fastifyStatic from "@fastify/static";
@@ -636,7 +636,7 @@ import indexRoute from "./routes/index.js";
 
 export async function buildApp(): Promise<FastifyInstance> {
   const config = loadConfig();
-  const app = Fastify({ loggerInstance: logger });
+  const app = Fastify({ logger });
 
   await app.register(fastifyStatic, {
     root: config.publicDir,
