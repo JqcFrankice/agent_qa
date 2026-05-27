@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8" />
+  <title>server-agent</title>
+  <style>
+    body { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; max-width: 640px; margin: 4rem auto; padding: 0 1rem; color: #222; }
+    code { background: #f4f4f4; padding: 0 0.3em; border-radius: 3px; }
+    .row { margin: 0.5rem 0; }
+  </style>
+</head>
+<body>
+  <h1>server-agent online</h1>
+  <p>Phase 1 infrastructure skeleton</p>
+  <div class="row">commit: <code id="sha">…</code></div>
+  <div class="row">built: <code id="built">…</code></div>
+  <div class="row">env: <code id="env">…</code></div>
+  <script>
+    fetch("/version").then(r => r.json()).then(v => {
+      document.getElementById("sha").textContent = v.gitSha;
+      document.getElementById("built").textContent = v.buildTime;
+      document.getElementById("env").textContent = v.nodeEnv;
+    }).catch(e => {
+      document.getElementById("sha").textContent = "fetch failed: " + e.message;
+    });
+  </script>
+</body>
+</html>
