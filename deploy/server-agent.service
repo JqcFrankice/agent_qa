@@ -1,0 +1,27 @@
+[Unit]
+Description=server-agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=agent
+Group=agent
+WorkingDirectory=/opt/server_agent
+EnvironmentFile=/etc/server-agent/agent.env
+ExecStart=/usr/bin/node /opt/server_agent/dist/server.js
+Restart=on-failure
+RestartSec=3
+
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/opt/server_agent
+MemoryMax=512M
+
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
