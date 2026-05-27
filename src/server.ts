@@ -41,6 +41,10 @@ async function main(): Promise<void> {
   process.on("SIGTERM", () => void close("SIGTERM"));
   process.on("SIGINT", () => void close("SIGINT"));
 
+  // ROLLBACK DRILL — intentionally crash before listen to verify deploy-agent
+  // health-check + auto-rollback. Will be reverted in the next commit.
+  throw new Error("rollback-drill");
+
   await app.listen({ host: config.host, port: config.port });
 }
 
