@@ -22,10 +22,10 @@ jobs:
           node-version: "22"
           cache: npm
       - run: npm ci
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm test
-      - run: npm run build
+      - run: npm run lint --workspaces --if-present
+      - run: npm run typecheck --workspaces --if-present
+      - run: npm run test --workspaces --if-present
+      - run: npm run build --workspaces --if-present
 
   deploy:
     name: deploy
