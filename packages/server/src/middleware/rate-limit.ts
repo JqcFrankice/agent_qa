@@ -35,6 +35,7 @@ export function checkRateLimit(db: AppDb, input: RateLimitInput): RateLimitResul
 
   raw.exec("CREATE TABLE IF NOT EXISTS rate_limit_buckets (key text PRIMARY KEY NOT NULL, count integer NOT NULL, window_start integer NOT NULL, locked_until integer)");
   const nowMs = (input.now ?? new Date()).getTime();
+  raw.prepare("DELETE FROM rate_limit_buckets WHERE window_start + ? <= ?").run(input.windowMs, nowMs);
   const row = raw.prepare("SELECT key, count, window_start, locked_until FROM rate_limit_buckets WHERE key = ?").get(input.key) as BucketRow | undefined;
 
   if (!row || nowMs - row.window_start >= input.windowMs) {

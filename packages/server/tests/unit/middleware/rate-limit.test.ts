@@ -21,4 +21,16 @@ describe("checkRateLimit", () => {
     expect(checkRateLimit(db, { key: "ip:1", limit: 1, windowMs: 60000, lockMs: 300000, now: first }).allowed).toBe(false);
     expect(checkRateLimit(db, { key: "ip:1", limit: 1, windowMs: 60000, lockMs: 300000, now: later }).allowed).toBe(true);
   });
+
+  it("cleans expired buckets before writing the current bucket", () => {
+    const db = createTestDb();
+    const first = new Date("2026-05-29T00:00:00Z");
+    const later = new Date("2026-05-29T00:02:00Z");
+    checkRateLimit(db, { key: "ip:old", limit: 1, windowMs: 60000, lockMs: 300000, now: first });
+    checkRateLimit(db, { key: "ip:new", limit: 1, windowMs: 60000, lockMs: 300000, now: later });
+
+    const raw = (db as unknown as { $client: { prepare(sql: string): { get(...params: unknown[]): unknown } } }).$client;
+    expect(raw.prepare("SELECT key FROM rate_limit_buckets WHERE key = ?").get("ip:old")).toBeUndefined();
+    expect(raw.prepare("SELECT key FROM rate_limit_buckets WHERE key = ?").get("ip:new")).toBeTruthy();
+  });
 });
