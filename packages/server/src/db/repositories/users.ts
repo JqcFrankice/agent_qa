@@ -27,4 +27,8 @@ export class UserRepository {
   async deleteByUsername(username: string) {
     await this.db.delete(users).where(eq(users.username, username));
   }
+
+  async updatePassword(username: string, passwordHash: string) {
+    await this.db.update(users).set({ passwordHash }).where(eq(users.username, username));
+  }
 }
