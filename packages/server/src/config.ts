@@ -7,7 +7,8 @@ const schema = z.object({
   PORT: z.coerce.number().int().positive(),
   HOST: z.string().min(1),
   NODE_ENV: z.enum(["development", "test", "production"]),
-  LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info")
+  LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
+  DB_PATH: z.string().min(1).default(":memory:")
 });
 
 export interface AppConfig {
@@ -15,6 +16,7 @@ export interface AppConfig {
   host: string;
   nodeEnv: "development" | "test" | "production";
   logLevel: "fatal" | "error" | "warn" | "info" | "debug" | "trace";
+  dbPath: string;
   publicDir: string;
   gitSha: string;
   buildTime: string;
@@ -30,6 +32,7 @@ export function loadConfig(): AppConfig {
     host: parsed.HOST,
     nodeEnv: parsed.NODE_ENV,
     logLevel: parsed.LOG_LEVEL,
+    dbPath: parsed.DB_PATH,
     publicDir,
     gitSha: buildInfo.gitSha,
     buildTime: buildInfo.buildTime

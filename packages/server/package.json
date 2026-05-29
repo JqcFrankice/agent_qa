@@ -14,8 +14,13 @@
   },
   "dependencies": {
     "@fastify/static": "^7.0.4",
+    "better-sqlite3": "^12.10.0",
+    "drizzle-orm": "^0.45.2",
     "fastify": "^4.28.1",
     "pino": "^9.4.0",
     "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13"
   }
 }
