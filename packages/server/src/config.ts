@@ -28,8 +28,27 @@ export interface AppConfig {
   buildTime: string;
 }
 
+function validateProductionSecrets(parsed: z.infer<typeof schema>): void {
+  if (parsed.NODE_ENV !== "production") return;
+  const placeholders = new Set([
+    "test-session-secret",
+    "test-turnstile-secret",
+    "test-turnstile-site-key",
+    "replace-with-32-byte-random-secret",
+    "replace-with-cloudflare-turnstile-secret",
+    "replace-with-cloudflare-turnstile-site-key"
+  ]);
+  if (parsed.SESSION_COOKIE_SECRET.length < 32 || placeholders.has(parsed.SESSION_COOKIE_SECRET)) {
+    throw new Error("SESSION_COOKIE_SECRET must be a non-placeholder value with at least 32 characters in production");
+  }
+  if (placeholders.has(parsed.TURNSTILE_SECRET_KEY) || placeholders.has(parsed.TURNSTILE_SITE_KEY)) {
+    throw new Error("Turnstile keys must be non-placeholder values in production");
+  }
+}
+
 export function loadConfig(): AppConfig {
   const parsed = schema.parse(process.env);
+  validateProductionSecrets(parsed);
   const here = dirname(fileURLToPath(import.meta.url));
   const publicDir = resolve(here, "..", "public");
   const buildInfo = loadBuildInfo();

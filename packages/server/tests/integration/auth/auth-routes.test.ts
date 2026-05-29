@@ -82,4 +82,51 @@ describe("auth routes", () => {
     expect(res.json().error.code).toBe("AUTH_NOT_AUTHENTICATED");
     await app.close();
   });
+
+  it("returns 423 when Turnstile verification fails", async () => {
+    const db = await seedInvite();
+    const app = await buildApp({ db, turnstileVerifier: async () => false });
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/auth/register",
+      payload: { username: "alice", password: "password123", inviteCode: "ABCDEFGHJKLM", turnstileToken: "bad-token" }
+    });
+    expect(res.statusCode).toBe(423);
+    expect(res.json().error.code).toBe("AUTH_TURNSTILE_FAILED");
+    await app.close();
+  });
+
+  it("rate limits repeated failed logins", async () => {
+    const db = await seedInvite();
+    const app = await buildApp({ db, turnstileVerifier: async () => true });
+    for (let i = 0; i < 5; i += 1) {
+      const res = await app.inject({ method: "POST", url: "/api/auth/login", payload: { username: "missing", password: "password123" } });
+      expect(res.statusCode).toBe(401);
+    }
+    const limited = await app.inject({ method: "POST", url: "/api/auth/login", payload: { username: "missing", password: "password123" } });
+    expect(limited.statusCode).toBe(429);
+    expect(limited.json().error.code).toBe("AUTH_RATE_LIMITED");
+    expect(limited.headers["retry-after"]).toBeTruthy();
+    await app.close();
+  });
+
+  it("rate limits registration attempts by IP", async () => {
+    const app = await buildApp({ db: createTestDb(), turnstileVerifier: async () => false });
+    for (let i = 0; i < 3; i += 1) {
+      const res = await app.inject({
+        method: "POST",
+        url: "/api/auth/register",
+        payload: { username: `user${i}`, password: "password123", inviteCode: "BAD", turnstileToken: "bad-token" }
+      });
+      expect(res.statusCode).toBe(423);
+    }
+    const limited = await app.inject({
+      method: "POST",
+      url: "/api/auth/register",
+      payload: { username: "user3", password: "password123", inviteCode: "BAD", turnstileToken: "bad-token" }
+    });
+    expect(limited.statusCode).toBe(429);
+    expect(limited.json().error.code).toBe("AUTH_RATE_LIMITED");
+    await app.close();
+  });
 });

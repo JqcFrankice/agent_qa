@@ -1,4 +1,4 @@
-import { and, eq, gt, isNull, or } from "drizzle-orm";
+import { and, eq, gt, isNull, or, sql } from "drizzle-orm";
 import type { AppDb } from "../client.js";
 import { inviteCodes } from "../schema.js";
 
@@ -33,13 +33,13 @@ export class InviteRepository {
   }
 
   async consume(code: string, now = new Date()): Promise<boolean> {
-    const [invite] = await this.db.select().from(inviteCodes).where(and(
+    const result = await this.db.update(inviteCodes).set({
+      usesRemaining: sql`${inviteCodes.usesRemaining} - 1`
+    }).where(and(
       eq(inviteCodes.code, code),
       gt(inviteCodes.usesRemaining, 0),
       or(isNull(inviteCodes.expiresAt), gt(inviteCodes.expiresAt, now))
-    )).limit(1);
-    if (!invite) return false;
-    await this.db.update(inviteCodes).set({ usesRemaining: invite.usesRemaining - 1 }).where(eq(inviteCodes.code, code));
-    return true;
+    ));
+    return result.changes > 0;
   }
 }

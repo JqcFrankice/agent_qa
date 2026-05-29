@@ -73,9 +73,15 @@ log "preparing ${ENV_DIR}"
 install -d -o root -g "${AGENT_USER}" -m 0750 "${ENV_DIR}"
 if [[ ! -f "${ENV_FILE}" ]]; then
   install -o root -g "${AGENT_USER}" -m 0640 "${REPO_DIR}/deploy/agent.env.example" "${ENV_FILE}"
-  log "wrote default ${ENV_FILE} — REVIEW AND EDIT BEFORE PRODUCTION USE"
+  SESSION_SECRET="$(openssl rand -base64 32)"
+  sed -i "s#^SESSION_COOKIE_SECRET=.*#SESSION_COOKIE_SECRET=${SESSION_SECRET}#" "${ENV_FILE}"
+  log "wrote default ${ENV_FILE} with generated SESSION_COOKIE_SECRET"
 else
   log "${ENV_FILE} already exists, leaving alone"
+fi
+if grep -Eq 'replace-with-cloudflare-turnstile-(secret|site-key)' "${ENV_FILE}"; then
+  echo "Edit ${ENV_FILE} with real TURNSTILE_SECRET_KEY and TURNSTILE_SITE_KEY, then rerun bootstrap." >&2
+  exit 1
 fi
 
 log "installing database backup timer"
@@ -121,7 +127,7 @@ bootstrap complete. MANUAL FOLLOW-UP STILL REQUIRED:
         /home/agent/.ssh/authorized_keys
      prefixed with:
         command="/usr/local/bin/deploy-agent",no-pty,no-port-forwarding,no-X11-forwarding
-  3. Edit /etc/server-agent/agent.env with real SESSION_COOKIE_SECRET and Turnstile keys.
+  3. /etc/server-agent/agent.env 已生成 SESSION_COOKIE_SECRET；Turnstile keys 必须填真实值后 bootstrap 才会继续。
   4. Verify from outside:
         curl -I http://aicoolyun.vip
         curl https://aicoolyun.vip/api/health
