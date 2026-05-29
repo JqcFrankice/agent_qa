@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { execFileSync } from "node:child_process";
 import { writeFileSync, mkdirSync } from "node:fs";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 
 function gitSha() {
   try {
@@ -11,12 +11,12 @@ function gitSha() {
   }
 }
 
-const target = resolve(process.cwd(), "dist", "build-info.json");
+const target = resolve(process.cwd(), "dist/build-info.json");
 const payload = {
   gitSha: gitSha(),
   buildTime: new Date().toISOString()
 };
 
-mkdirSync(resolve(process.cwd(), "dist"), { recursive: true });
+mkdirSync(dirname(target), { recursive: true });
 writeFileSync(target, JSON.stringify(payload, null, 2) + "\n", "utf8");
 console.log(`wrote ${target}: ${JSON.stringify(payload)}`);

@@ -1,0 +1,21 @@
+{
+  "name": "@server-agent/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc -p . && node ../../scripts/write-build-info.mjs",
+    "start": "node dist/server.js",
+    "test": "vitest run",
+    "lint": "eslint src tests",
+    "typecheck": "tsc -p . --noEmit",
+    "db:migrate": "tsx src/db/migrate.ts"
+  },
+  "dependencies": {
+    "@fastify/static": "^7.0.4",
+    "fastify": "^4.28.1",
+    "pino": "^9.4.0",
+    "zod": "^3.23.8"
+  }
+}
