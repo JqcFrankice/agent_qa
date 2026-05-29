@@ -12,7 +12,7 @@ beforeAll(async () => {
 describe("buildApp", () => {
   it("registers /health and returns ok", async () => {
     const app = await buildApp();
-    const res = await app.inject({ method: "GET", url: "/health" });
+    const res = await app.inject({ method: "GET", url: "/api/health" });
     expect(res.statusCode).toBe(200);
     expect(res.json().status).toBe("ok");
     await app.close();
@@ -20,7 +20,7 @@ describe("buildApp", () => {
 
   it("registers /version and returns build info shape", async () => {
     const app = await buildApp();
-    const res = await app.inject({ method: "GET", url: "/version" });
+    const res = await app.inject({ method: "GET", url: "/api/version" });
     expect(res.statusCode).toBe(200);
     const body = res.json();
     expect(typeof body.gitSha).toBe("string");
