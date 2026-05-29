@@ -38,7 +38,7 @@ export function login(input: { username: string; password: string }) {
   return request<{ ok: true; user: User }>("/api/auth/login", { method: "POST", body: JSON.stringify(input) });
 }
 
-export function register(input: { username: string; password: string; inviteCode: string; turnstileToken: string }) {
+export function register(input: { username: string; password: string; inviteCode: string }) {
   return request<{ ok: true }>("/api/auth/register", { method: "POST", body: JSON.stringify(input) });
 }
 

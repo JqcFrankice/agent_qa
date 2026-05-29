@@ -8,7 +8,6 @@ import { SessionRepository } from "./db/repositories/sessions.js";
 import { loadConfig } from "./config.js";
 import { logger } from "./logger.js";
 import { sessionMiddleware } from "./middleware/session.js";
-import { verifyTurnstile } from "./middleware/turnstile.js";
 import authRoutes from "./routes/auth/index.js";
 import healthRoute from "./routes/health.js";
 import versionRoute from "./routes/version.js";
@@ -16,7 +15,6 @@ import indexRoute from "./routes/index.js";
 
 interface BuildAppOptions {
   db?: AppDb;
-  turnstileVerifier?: (token: string, remoteIp?: string) => Promise<boolean>;
 }
 
 // 不显式标注返回类型：传入 pino 实例后 Fastify 实际推断出
@@ -46,8 +44,7 @@ export async function buildApp(options: BuildAppOptions = {}) {
   await app.register(authRoutes, {
     prefix: "/api/auth",
     db,
-    secureCookies: config.nodeEnv === "production",
-    turnstileVerifier: options.turnstileVerifier ?? ((token, remoteIp) => verifyTurnstile(config.turnstileSecretKey, token, remoteIp))
+    secureCookies: config.nodeEnv === "production"
   });
   await app.register(indexRoute);
 

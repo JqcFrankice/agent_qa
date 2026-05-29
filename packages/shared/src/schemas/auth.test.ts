@@ -6,8 +6,7 @@ describe("auth schemas", () => {
     const parsed = registerRequestSchema.parse({
       username: "alice_123",
       password: "password123",
-      inviteCode: "ABCDEFGHJKLM",
-      turnstileToken: "token"
+      inviteCode: "ABCDEFGHJKLM"
     });
     expect(parsed.username).toBe("alice_123");
   });
@@ -16,8 +15,7 @@ describe("auth schemas", () => {
     expect(() => registerRequestSchema.parse({
       username: "alice",
       password: "short",
-      inviteCode: "ABCDEFGHJKLM",
-      turnstileToken: "token"
+      inviteCode: "ABCDEFGHJKLM"
     })).toThrow();
   });
 

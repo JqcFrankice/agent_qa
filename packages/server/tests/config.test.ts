@@ -11,8 +11,6 @@ describe("config", () => {
     process.env.NODE_ENV = "production";
     process.env.DB_PATH = "/tmp/server-agent.sqlite";
     process.env.SESSION_COOKIE_SECRET = "0123456789abcdef0123456789abcdef";
-    process.env.TURNSTILE_SECRET_KEY = "0x4AAAA-real-secret";
-    process.env.TURNSTILE_SITE_KEY = "0x4AAAA-real-site";
     delete process.env.LOG_LEVEL;
     const { loadConfig } = await import("../src/config.js");
     const cfg = loadConfig();
@@ -36,8 +34,6 @@ describe("config", () => {
     process.env.NODE_ENV = "production";
     process.env.DB_PATH = "/tmp/server-agent.sqlite";
     process.env.SESSION_COOKIE_SECRET = "replace-with-32-byte-random-secret";
-    process.env.TURNSTILE_SECRET_KEY = "replace-with-cloudflare-turnstile-secret";
-    process.env.TURNSTILE_SITE_KEY = "replace-with-cloudflare-turnstile-site-key";
     const { loadConfig } = await import("../src/config.js");
     expect(() => loadConfig()).toThrow();
   });

@@ -9,8 +9,7 @@ export const loginRequestSchema = z.object({
 export const registerRequestSchema = z.object({
   username: usernameSchema,
   password: passwordSchema,
-  inviteCode: z.string().min(1).max(64),
-  turnstileToken: z.string().min(1)
+  inviteCode: z.string().min(1).max(64)
 });
 
 export type LoginRequest = z.infer<typeof loginRequestSchema>;

@@ -25,12 +25,6 @@ export async function registerRoute(app: FastifyInstance, deps: AuthRouteDeps) {
       return reply.code(error.statusCode).header("Retry-After", String(rateLimit.retryAfterSec ?? Math.ceil(REGISTER_LOCK_MS / 1000))).send(errorBody(error));
     }
 
-    const turnstileOk = await deps.turnstileVerifier(parsed.data.turnstileToken, request.ip);
-    if (!turnstileOk) {
-      const error = new AppError(423, "AUTH_TURNSTILE_FAILED", "人机验证失败");
-      return reply.code(error.statusCode).send(errorBody(error));
-    }
-
     const users = new UserRepository(deps.db);
     if (await users.findByUsername(parsed.data.username)) {
       const error = new AppError(409, "AUTH_USERNAME_TAKEN", "用户名已被占用");

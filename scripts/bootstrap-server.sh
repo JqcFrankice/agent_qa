@@ -79,10 +79,6 @@ if [[ ! -f "${ENV_FILE}" ]]; then
 else
   log "${ENV_FILE} already exists, leaving alone"
 fi
-if grep -Eq 'replace-with-cloudflare-turnstile-(secret|site-key)' "${ENV_FILE}"; then
-  echo "Edit ${ENV_FILE} with real TURNSTILE_SECRET_KEY and TURNSTILE_SITE_KEY, then rerun bootstrap." >&2
-  exit 1
-fi
 
 log "installing database backup timer"
 cat >/etc/systemd/system/server-agent-db-backup.service <<'UNIT'
@@ -127,7 +123,7 @@ bootstrap complete. MANUAL FOLLOW-UP STILL REQUIRED:
         /home/agent/.ssh/authorized_keys
      prefixed with:
         command="/usr/local/bin/deploy-agent",no-pty,no-port-forwarding,no-X11-forwarding
-  3. /etc/server-agent/agent.env 已生成 SESSION_COOKIE_SECRET；Turnstile keys 必须填真实值后 bootstrap 才会继续。
+  3. /etc/server-agent/agent.env 已生成 SESSION_COOKIE_SECRET（无需额外密钥）。
   4. Verify from outside:
         curl -I http://aicoolyun.vip
         curl https://aicoolyun.vip/api/health

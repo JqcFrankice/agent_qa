@@ -564,7 +564,7 @@ deploy-agent.sh 的 `health_ok` 函数：`curl -fsS http://127.0.0.1:${PORT:-808
 | ADR-11 | TLS 证书 = Let's Encrypt（ACME http-01） | Cloudflare Origin Cert、自签 | 免费、自动续签、无 Cloudflare 强依赖 |
 | ADR-12 | 持久化 = SQLite + Drizzle ORM | Postgres、Prisma、Knex | Phase 2a-5 容量够；单文件备份；TS 一等公民 |
 | ADR-13 | Secrets 仍 EnvironmentFile，不上 SOPS | SOPS/age、Vault | Phase 2a 仅新增 2-3 个 secret，不入 git，无收益 |
-| ADR-14 | 注册门槛 = 邀请码 + Turnstile（双层） | 仅 Turnstile、邮箱验证 | 双层防垃圾；不引邮件基础设施 |
+| ADR-14 | 注册门槛 = 邀请码 + IP 限流（**实现时修订，去掉 Turnstile**） | 邀请码+Turnstile 双层、邮箱验证 | 邀请码空间 28^12≈2^57 已足够挡机器人；去掉 Turnstile 消除 Cloudflare 外部依赖与国内访问不稳风险（原 R5） |
 | ADR-15 | Session = DB session + Cookie | JWT、OAuth2 | 撤销简单；XSS 防御天然（HttpOnly）；SSE 兼容 |
 | ADR-16 | 密码哈希 = argon2id | bcrypt、scrypt | OWASP 2024 推荐 #1，GPU 攻击成本最高 |
 | ADR-17 | 仓库布局 = npm workspaces | 单仓平铺、独立仓 | shared schema 互通；CI 不变；解耦成本可控 |

@@ -13,7 +13,7 @@
 - npm workspaces：`packages/server`、`packages/shared`、`packages/web`
 - Fastify API：`/api/health`、`/api/version`、`/api/auth/register`、`/api/auth/login`、`/api/auth/logout`、`/api/auth/me`
 - SQLite + Drizzle schema + forward-only migration pipeline
-- 邀请码 + Turnstile 注册门槛，argon2id 密码哈希，HttpOnly cookie session
+- 邀请码注册门槛 + IP 限流，argon2id 密码哈希，HttpOnly cookie session
 - React + Vite + Tailwind 登录 / 注册 / 登录后占位页
 - Caddy v2 HTTPS 终结，HTTP → HTTPS，HSTS
 - push-to-main → GitHub Actions → SSH 触发服务器上的 `deploy-agent` 脚本拉代码、迁移、构建、重启
@@ -41,8 +41,6 @@ NODE_ENV=development
 LOG_LEVEL=info
 DB_PATH=/tmp/server-agent-dev.sqlite
 SESSION_COOKIE_SECRET=dev-secret
-TURNSTILE_SECRET_KEY=dev-turnstile-secret
-TURNSTILE_SITE_KEY=dev-turnstile-site-key
 ```
 
 ## 测试 / 校验
@@ -80,7 +78,7 @@ npm run admin -- user delete <username>
    bash /tmp/bootstrap-server.sh
    ```
 3. 阿里云控制台 → ECS → 安全组：放行 TCP 80 / 443，撤掉公网 8080。
-4. 编辑 `/etc/server-agent/agent.env`，填入真实 `SESSION_COOKIE_SECRET`、Turnstile key。
+4. 编辑 `/etc/server-agent/agent.env`，确认 `SESSION_COOKIE_SECRET` 为真实随机值（bootstrap 已自动生成）。
 5. 在 GitHub Actions 上生成一对 ed25519 deploy key（不要复用本机密钥）：
    ```bash
    ssh-keygen -t ed25519 -f /tmp/agent_qa_deploy -N ""
