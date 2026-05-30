@@ -11,6 +11,7 @@
   },
   "scripts": {
     "build:shared": "npm run build --workspace=@server-agent/shared",
+    "prebuild": "npm run build:shared",
     "build": "npm run build --workspaces --if-present",
     "dev": "npm run dev --workspace=@server-agent/server",
     "start": "npm run start --workspace=@server-agent/server",
