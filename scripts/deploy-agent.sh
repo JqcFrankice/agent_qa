@@ -13,16 +13,12 @@ HEALTH_DELAY_SEC=1
 
 log() { echo "[deploy-agent] $*"; }
 
-# Single-instance lock — bail out fast on concurrent deploy
 exec 200>"${LOCK_FILE}"
 if ! flock -n 200; then
   log "another deploy in progress, exiting"
   exit 75
 fi
 
-# Read PORT from the service env file without sourcing it into our shell —
-# sourcing would propagate NODE_ENV=production to the npm ci below, which
-# would skip devDependencies and break `npm run build` (no tsc).
 if [[ -f "${ENV_FILE}" ]]; then
   PORT="$(grep -E '^PORT=' "${ENV_FILE}" | tail -1 | cut -d= -f2-)"
 fi
@@ -42,8 +38,10 @@ deploy_commit() {
   git reset --hard "${ref}"
   log "npm ci"
   npm ci --no-audit --no-fund
+  log "npm run db:migrate"
+  npm run db:migrate --workspace=@server-agent/server
   log "npm run build"
-  npm run build
+  npm run build --workspaces --if-present
   log "systemctl restart server-agent"
   sudo /bin/systemctl restart server-agent
 }
@@ -51,7 +49,7 @@ deploy_commit() {
 health_ok() {
   local i
   for ((i = 1; i <= HEALTH_RETRIES; i++)); do
-    if curl -fsS "http://127.0.0.1:${PORT}/health" >/dev/null; then
+    if curl -fsS "http://127.0.0.1:${PORT}/api/health" >/dev/null; then
       return 0
     fi
     sleep "${HEALTH_DELAY_SEC}"
@@ -59,7 +57,6 @@ health_ok() {
   return 1
 }
 
-# === Forward roll ===
 deploy_commit "${TARGET_REF}"
 if health_ok; then
   log "deploy ok @ $(git rev-parse --short HEAD)"
@@ -67,7 +64,6 @@ if health_ok; then
 fi
 log "health check failed after deploying ${TARGET_REF}"
 
-# === Rollback ===
 log "rolling back to ${RECORD_OLD_SHA}"
 deploy_commit "${RECORD_OLD_SHA}"
 if health_ok; then

@@ -9,7 +9,7 @@ User=agent
 Group=agent
 WorkingDirectory=/opt/server_agent
 EnvironmentFile=/etc/server-agent/agent.env
-ExecStart=/usr/bin/node /opt/server_agent/dist/server.js
+ExecStart=/usr/bin/npm start --workspace=@server-agent/server
 Restart=on-failure
 RestartSec=3
 
@@ -17,7 +17,7 @@ NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true
 PrivateTmp=true
-ReadWritePaths=/opt/server_agent
+ReadWritePaths=/var/lib/server-agent/db
 MemoryMax=512M
 
 StandardOutput=journal

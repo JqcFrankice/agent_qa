@@ -1,24 +1,26 @@
 {
-  "name": "server-agent",
+  "name": "server-agent-root",
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
   "engines": {
     "node": ">=22.0.0"
   },
   "scripts": {
-    "dev": "tsx watch src/server.ts",
-    "build": "tsc -p . && node scripts/write-build-info.mjs",
-    "start": "node dist/server.js",
-    "test": "vitest run",
-    "lint": "eslint src tests",
-    "typecheck": "tsc -p . --noEmit"
-  },
-  "dependencies": {
-    "@fastify/static": "^7.0.4",
-    "fastify": "^4.28.1",
-    "pino": "^9.4.0",
-    "zod": "^3.23.8"
+    "build:shared": "npm run build --workspace=@server-agent/shared",
+    "build": "npm run build --workspaces --if-present",
+    "dev": "npm run dev --workspace=@server-agent/server",
+    "start": "npm run start --workspace=@server-agent/server",
+    "pretest": "npm run build:shared",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "pretypecheck": "npm run build:shared",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "admin": "tsx scripts/admin-cli.ts",
+    "db:migrate": "npm run db:migrate --workspace=@server-agent/server"
   },
   "devDependencies": {
     "@types/node": "^22.7.4",
@@ -27,5 +29,8 @@
     "typescript": "^5.6.2",
     "typescript-eslint": "^8.8.0",
     "vitest": "^2.1.1"
+  },
+  "dependencies": {
+    "commander": "^15.0.0"
   }
 }
