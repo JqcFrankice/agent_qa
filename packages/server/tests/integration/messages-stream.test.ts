@@ -55,7 +55,7 @@ async function registerAndLogin(app: TestApp, username: string): Promise<string>
 }
 
 async function createConversation(app: TestApp, cookie: string): Promise<string> {
-  const res = await app.inject({ method: "POST", url: "/api/conversations", headers: { cookie }, payload: { provider: "aiwoo-claude", model: "claude-opus-4-7" } });
+  const res = await app.inject({ method: "POST", url: "/api/conversations", headers: { cookie }, payload: { provider: "aiwoo-claude", model: "claude-opus-4-8" } });
   return res.json().conversation.id;
 }
 

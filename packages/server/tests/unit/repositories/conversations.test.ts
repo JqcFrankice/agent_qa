@@ -13,8 +13,8 @@ describe("ConversationsRepository", () => {
     const repo = new ConversationsRepository(db);
     const userA = await insertTestUser(db, "alice");
     const userB = await insertTestUser(db, "bob");
-    const first = await repo.create(userA.id, { provider: "aiwoo-claude", model: "claude-opus-4-7" });
-    await repo.create(userB.id, { provider: "aiwoo-claude", model: "claude-opus-4-7" });
+    const first = await repo.create(userA.id, { provider: "aiwoo-claude", model: "claude-opus-4-8" });
+    await repo.create(userB.id, { provider: "aiwoo-claude", model: "claude-opus-4-8" });
     const second = await repo.create(userA.id, { provider: "aiwoo-codex", model: "gpt-5.5" });
     await repo.softDelete(first.id, userA.id);
     await repo.rename(second.id, userA.id, "Renamed");
@@ -29,7 +29,7 @@ describe("ConversationsRepository", () => {
     const repo = new ConversationsRepository(db);
     const userA = await insertTestUser(db, "alice");
     const userB = await insertTestUser(db, "bob");
-    const conv = await repo.create(userA.id, { provider: "aiwoo-claude", model: "claude-opus-4-7" });
+    const conv = await repo.create(userA.id, { provider: "aiwoo-claude", model: "claude-opus-4-8" });
     expect(await repo.findById(conv.id, userB.id)).toBeNull();
     expect((await repo.findById(conv.id, userA.id))?.id).toBe(conv.id);
     await repo.softDelete(conv.id, userA.id);

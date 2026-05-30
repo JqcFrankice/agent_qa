@@ -49,7 +49,7 @@ describe("AiwooClaudeAdapter", () => {
   it("maps Anthropic SSE to neutral events", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => sseResponse(claudeSse)));
     const adapter = new AiwooClaudeAdapter({ baseUrl: "https://aiwoo.vip", authToken: "k", firstByteTimeoutMs: 1000 });
-    const events = await collect(adapter.stream({ model: "claude-opus-4-7", messages: [{ role: "user", content: "hi" }], signal: new AbortController().signal }));
+    const events = await collect(adapter.stream({ model: "claude-opus-4-8", messages: [{ role: "user", content: "hi" }], signal: new AbortController().signal }));
     expect(events).toEqual([
       { type: "delta", textDelta: "Hi" },
       { type: "done", finishReason: "end_turn", providerMessageId: "msg_1", usage: { inputTokens: 3, outputTokens: 2 } }
@@ -67,7 +67,7 @@ describe("AiwooClaudeAdapter", () => {
   it("maps 4xx to UPSTREAM_BAD_REQUEST", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response('{"error":{"message":"bad key"}}', { status: 401 })));
     const adapter = new AiwooClaudeAdapter({ baseUrl: "https://aiwoo.vip", authToken: "k", firstByteTimeoutMs: 1000 });
-    const events = await collect(adapter.stream({ model: "claude-opus-4-7", messages: [{ role: "user", content: "hi" }], signal: new AbortController().signal }));
+    const events = await collect(adapter.stream({ model: "claude-opus-4-8", messages: [{ role: "user", content: "hi" }], signal: new AbortController().signal }));
     expect(events[0].type).toBe("error");
     expect(events[0].error?.code).toBe("UPSTREAM_BAD_REQUEST");
   });
@@ -75,7 +75,7 @@ describe("AiwooClaudeAdapter", () => {
   it("emits UPSTREAM_TIMEOUT when no first byte arrives in time", async () => {
     vi.stubGlobal("fetch", signalAwareFetch([]));
     const adapter = new AiwooClaudeAdapter({ baseUrl: "https://aiwoo.vip", authToken: "k", firstByteTimeoutMs: 20 });
-    const events = await collect(adapter.stream({ model: "claude-opus-4-7", messages: [{ role: "user", content: "hi" }], signal: new AbortController().signal }));
+    const events = await collect(adapter.stream({ model: "claude-opus-4-8", messages: [{ role: "user", content: "hi" }], signal: new AbortController().signal }));
     expect(events[0].type).toBe("error");
     expect(events[0].error?.code).toBe("UPSTREAM_TIMEOUT");
   });
@@ -88,7 +88,7 @@ describe("AiwooClaudeAdapter", () => {
     const ac = new AbortController();
     const events: ChatStreamEvent[] = [];
     await expect(async () => {
-      for await (const event of adapter.stream({ model: "claude-opus-4-7", messages: [{ role: "user", content: "hi" }], signal: ac.signal })) {
+      for await (const event of adapter.stream({ model: "claude-opus-4-8", messages: [{ role: "user", content: "hi" }], signal: ac.signal })) {
         events.push(event);
         ac.abort();
       }

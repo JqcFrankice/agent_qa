@@ -15,7 +15,7 @@ const schema = z.object({
   OPENAI_API_KEY: z.string().min(1).default("test-openai-key"),
   AIWOO_BASE_URL: z.string().url().default("https://aiwoo.vip"),
   DEFAULT_PROVIDER: z.enum(["aiwoo-claude", "aiwoo-codex"]).default("aiwoo-claude"),
-  DEFAULT_MODEL: z.string().min(1).default("claude-opus-4-7"),
+  DEFAULT_MODEL: z.string().min(1).default("claude-opus-4-8"),
   UPSTREAM_FIRST_BYTE_TIMEOUT_MS: z.coerce.number().int().positive().default(30000)
 });
 

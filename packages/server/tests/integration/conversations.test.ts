@@ -36,7 +36,7 @@ describe("conversation routes", () => {
       method: "POST",
       url: "/api/conversations",
       headers: { cookie },
-      payload: { provider: "aiwoo-claude", model: "claude-opus-4-7" }
+      payload: { provider: "aiwoo-claude", model: "claude-opus-4-8" }
     });
     expect(create.statusCode).toBe(201);
     const id = create.json().conversation.id;
@@ -71,7 +71,7 @@ describe("conversation routes", () => {
   it("returns 404 for another user's conversation", async () => {
     const alice = await buildLoggedInTestApp("alice");
     const bobCookie = await registerAndLogin(alice.app, "bob");
-    const created = await alice.app.inject({ method: "POST", url: "/api/conversations", headers: { cookie: alice.cookie }, payload: { provider: "aiwoo-claude", model: "claude-opus-4-7" } });
+    const created = await alice.app.inject({ method: "POST", url: "/api/conversations", headers: { cookie: alice.cookie }, payload: { provider: "aiwoo-claude", model: "claude-opus-4-8" } });
     const id = created.json().conversation.id;
     const res = await alice.app.inject({ method: "PATCH", url: `/api/conversations/${id}`, headers: { cookie: bobCookie }, payload: { title: "hijack" } });
     expect(res.statusCode).toBe(404);
