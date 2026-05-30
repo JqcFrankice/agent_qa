@@ -55,6 +55,12 @@ async function main(): Promise<void> {
   const config = loadConfig();
   const app = await buildApp();
 
+  // DRILL: intentional throw in main() (NOT buildApp) before listen, to test
+  // deploy-agent rollback. buildApp stays healthy so tests/CI build pass, but
+  // the running process crashes on boot -> health check fails -> auto rollback.
+  // Reverted immediately after the drill.
+  throw new Error("DRILL: simulated boot failure to test deploy-agent rollback");
+
   const close = async (sig: string): Promise<void> => {
     logger.info({ sig }, "shutdown");
     await app.close();
