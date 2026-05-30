@@ -72,6 +72,7 @@ export class AiwooClaudeAdapter implements ProviderAdapter {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function safeParse(raw: string): any {
   try {
     return JSON.parse(raw);

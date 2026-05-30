@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import type { MessageDto } from "../../lib/api.js";
 import { MessageBubble } from "./MessageBubble.js";
 
-export interface ChatMessage extends Pick<MessageDto, "id" | "role" | "content" | "status" | "errorCode"> {}
+export type ChatMessage = Pick<MessageDto, "id" | "role" | "content" | "status" | "errorCode">;
 
 interface MessageListProps {
   messages: ChatMessage[];

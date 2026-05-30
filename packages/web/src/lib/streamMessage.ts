@@ -53,21 +53,29 @@ function parseSSE(frame: string): StreamEvent | null {
 
   switch (event) {
     case "ready":
-      return { type: "ready", assistantMessageId: data.assistantMessageId };
+      return { type: "ready", assistantMessageId: String(data.assistantMessageId ?? "") };
     case "delta":
-      return { type: "delta", text: data.text ?? "" };
+      return { type: "delta", text: typeof data.text === "string" ? data.text : "" };
     case "done":
-      return { type: "done", finishReason: data.finishReason, usage: data.usage };
+      return {
+        type: "done",
+        finishReason: data.finishReason as string | undefined,
+        usage: data.usage as { inputTokens: number; outputTokens: number } | undefined
+      };
     case "error":
-      return { type: "error", code: data.code ?? "INTERNAL", message: data.message ?? "上游服务异常" };
+      return {
+        type: "error",
+        code: typeof data.code === "string" ? data.code : "INTERNAL",
+        message: typeof data.message === "string" ? data.message : "上游服务异常"
+      };
     default:
       return null;
   }
 }
 
-function safeParse(raw: string): any {
+function safeParse(raw: string): Record<string, unknown> | null {
   try {
-    return JSON.parse(raw);
+    return JSON.parse(raw) as Record<string, unknown>;
   } catch {
     return null;
   }
