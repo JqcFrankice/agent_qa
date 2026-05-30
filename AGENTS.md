@@ -301,12 +301,13 @@ gh pr merge <n> --merge
 | 1 | done | 基础设施骨架（Fastify + systemd + Caddy + GH Actions 部署） |
 | 2a | done | HTTPS + 账号系统 + 持久化（邀请码 + argon2 + cookie session） |
 | 2b | **done** | 聊天核心 MVP（aiwoo claude/codex provider + SSE + /chat UI） |
-| 3 | next | 通用 skill 沉淀流水线（QA-AGENT 雏形） |
-| 4 | planned | QA-AGENT 模式 + game-qa-skill-system 集成 |
-| 5 | planned | Skill 审核 UI |
-| 6 | planned | 前端打磨 / provider 抽象 |
+| 3 | **next** | Skill 沉淀流水线：保存对话为 skill / 选用 skill 新建会话 / 个人+可发布存储 |
+| 4 | planned | QA-AGENT 模式：参数化 skill（input schema）+ 内置 QA preset |
+| 5 | planned | Skill 审核流：pending/approved + 版本管理 + admin UI |
+| 6 | planned | 前端打磨 + provider 抽象通用化 |
 
 每个 Phase 先 spec 后 plan 再代码，三件套都进 `docs/superpowers/`。
+Phase 3-6 总览（含 Phase 3 详细 spec）：[`docs/superpowers/specs/2026-05-30-phase-3-6-roadmap.md`](docs/superpowers/specs/2026-05-30-phase-3-6-roadmap.md)。
 
 ## 10. 联系点
 
