@@ -9,14 +9,18 @@ import { SessionRepository } from "./db/repositories/sessions.js";
 import { loadConfig } from "./config.js";
 import { logger } from "./logger.js";
 import { sessionMiddleware } from "./middleware/session.js";
+import { createProviderRegistry } from "./providers/registry.js";
+import type { ProviderAdapter } from "./providers/types.js";
 import authRoutes from "./routes/auth/index.js";
 import conversationRoutes from "./routes/conversations.js";
+import messageRoutes from "./routes/messages.js";
 import healthRoute from "./routes/health.js";
 import versionRoute from "./routes/version.js";
 import indexRoute from "./routes/index.js";
 
 interface BuildAppOptions {
   db?: AppDb;
+  providerRegistry?: Record<string, ProviderAdapter>;
 }
 
 // 不显式标注返回类型：传入 pino 实例后 Fastify 实际推断出
@@ -50,6 +54,12 @@ export async function buildApp(options: BuildAppOptions = {}) {
     secureCookies: config.nodeEnv === "production"
   });
   await app.register(conversationRoutes, { prefix: "/api", db });
+  await app.register(messageRoutes, {
+    prefix: "/api",
+    db,
+    providerRegistry: options.providerRegistry ?? createProviderRegistry(config),
+    defaultProvider: config.defaultProvider
+  });
   await app.register(indexRoute);
 
   return app;
