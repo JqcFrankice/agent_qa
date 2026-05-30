@@ -10,6 +10,7 @@ import { loadConfig } from "./config.js";
 import { logger } from "./logger.js";
 import { sessionMiddleware } from "./middleware/session.js";
 import authRoutes from "./routes/auth/index.js";
+import conversationRoutes from "./routes/conversations.js";
 import healthRoute from "./routes/health.js";
 import versionRoute from "./routes/version.js";
 import indexRoute from "./routes/index.js";
@@ -48,6 +49,7 @@ export async function buildApp(options: BuildAppOptions = {}) {
     db,
     secureCookies: config.nodeEnv === "production"
   });
+  await app.register(conversationRoutes, { prefix: "/api", db });
   await app.register(indexRoute);
 
   return app;
