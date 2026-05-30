@@ -13,6 +13,22 @@ function sseResponse(chunks: string[], status = 200): Response {
   return new Response(stream, { status, headers: { "content-type": "text/event-stream" } });
 }
 
+// See aiwoo-claude.test.ts: a fetch mock whose body honors the AbortSignal so
+// user aborts (AbortError) and first-byte timeouts (FirstByteTimeoutError) can
+// be exercised faithfully.
+function signalAwareFetch(initialChunks: string[]) {
+  const encoder = new TextEncoder();
+  return vi.fn(async (_url: string, init: { signal: AbortSignal }) => {
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        for (const chunk of initialChunks) controller.enqueue(encoder.encode(chunk));
+        init.signal.addEventListener("abort", () => controller.error(init.signal.reason), { once: true });
+      }
+    });
+    return new Response(stream, { status: 200, headers: { "content-type": "text/event-stream" } });
+  });
+}
+
 async function collect(iterable: AsyncIterable<ChatStreamEvent>): Promise<ChatStreamEvent[]> {
   const out: ChatStreamEvent[] = [];
   for await (const event of iterable) out.push(event);
@@ -35,5 +51,48 @@ describe("AiwooCodexAdapter", () => {
       { type: "delta", textDelta: "Hi" },
       { type: "done", finishReason: "completed", providerMessageId: "resp_1", usage: { inputTokens: 3, outputTokens: 2 } }
     ]);
+  });
+
+  it("maps a response.failed frame to UPSTREAM_ERROR", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => sseResponse([
+      'event: response.failed\ndata: {"response":{"error":{"message":"boom"}}}\n\n'
+    ])));
+    const adapter = new AiwooCodexAdapter({ baseUrl: "https://aiwoo.vip", apiKey: "k", firstByteTimeoutMs: 1000 });
+    const events = await collect(adapter.stream({ model: "gpt-5.5", messages: [{ role: "user", content: "hi" }], signal: new AbortController().signal }));
+    expect(events[0].type).toBe("error");
+    expect(events[0].error?.code).toBe("UPSTREAM_ERROR");
+    expect(events[0].error?.message).toBe("boom");
+  });
+
+  it("maps 4xx to UPSTREAM_BAD_REQUEST", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response('{"error":{"message":"bad key"}}', { status: 401 })));
+    const adapter = new AiwooCodexAdapter({ baseUrl: "https://aiwoo.vip", apiKey: "k", firstByteTimeoutMs: 1000 });
+    const events = await collect(adapter.stream({ model: "gpt-5.5", messages: [{ role: "user", content: "hi" }], signal: new AbortController().signal }));
+    expect(events[0].type).toBe("error");
+    expect(events[0].error?.code).toBe("UPSTREAM_BAD_REQUEST");
+  });
+
+  it("emits UPSTREAM_TIMEOUT when no first byte arrives in time", async () => {
+    vi.stubGlobal("fetch", signalAwareFetch([]));
+    const adapter = new AiwooCodexAdapter({ baseUrl: "https://aiwoo.vip", apiKey: "k", firstByteTimeoutMs: 20 });
+    const events = await collect(adapter.stream({ model: "gpt-5.5", messages: [{ role: "user", content: "hi" }], signal: new AbortController().signal }));
+    expect(events[0].type).toBe("error");
+    expect(events[0].error?.code).toBe("UPSTREAM_TIMEOUT");
+  });
+
+  it("re-throws AbortError when the request signal aborts mid-stream", async () => {
+    vi.stubGlobal("fetch", signalAwareFetch([
+      'event: response.output_text.delta\ndata: {"delta":"Hi"}\n\n'
+    ]));
+    const adapter = new AiwooCodexAdapter({ baseUrl: "https://aiwoo.vip", apiKey: "k", firstByteTimeoutMs: 1000 });
+    const ac = new AbortController();
+    const events: ChatStreamEvent[] = [];
+    await expect(async () => {
+      for await (const event of adapter.stream({ model: "gpt-5.5", messages: [{ role: "user", content: "hi" }], signal: ac.signal })) {
+        events.push(event);
+        ac.abort();
+      }
+    }).rejects.toThrow(/abort/i);
+    expect(events).toEqual([{ type: "delta", textDelta: "Hi" }]);
   });
 });
