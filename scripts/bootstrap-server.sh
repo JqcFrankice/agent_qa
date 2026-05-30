@@ -106,7 +106,9 @@ systemctl daemon-reload
 systemctl enable --now server-agent-db-backup.timer
 
 log "running initial npm ci + migrate + build as ${AGENT_USER}"
-sudo -u "${AGENT_USER}" bash -c "cd '${REPO_DIR}' && npm ci --no-audit --no-fund && npm run db:migrate --workspace=@server-agent/server && npm run build --workspaces --if-present"
+# migrate gets agent.env (DB_PATH etc.) injected in a subshell so NODE_ENV does
+# not leak into npm ci / build (which need devDependencies for tsc).
+sudo -u "${AGENT_USER}" bash -c "cd '${REPO_DIR}' && npm ci --no-audit --no-fund && ( set -a; . '${ENV_FILE}'; set +a; npm run db:migrate --workspace=@server-agent/server ) && npm run build --workspaces --if-present"
 
 log "enabling and starting server-agent.service"
 systemctl enable --now server-agent.service

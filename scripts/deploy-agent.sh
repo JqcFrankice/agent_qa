@@ -39,7 +39,11 @@ deploy_commit() {
   log "npm ci"
   npm ci --no-audit --no-fund
   log "npm run db:migrate"
-  npm run db:migrate --workspace=@server-agent/server
+  # Inject agent.env (DB_PATH + SESSION_COOKIE_SECRET) only for migrate, in a
+  # subshell so NODE_ENV=production does NOT leak into npm ci / build above/below
+  # (production would skip devDependencies and break tsc). Without DB_PATH the
+  # migrate runs against the in-memory default and never persists.
+  ( set -a; . "${ENV_FILE}"; set +a; npm run db:migrate --workspace=@server-agent/server )
   log "npm run build"
   npm run build --workspaces --if-present
   log "systemctl restart server-agent"
