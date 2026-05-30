@@ -104,7 +104,7 @@ const messageRoutes: FastifyPluginAsync<MessageRouteDeps> = async (app, deps) =>
     writeSse(reply.raw, "ready", { assistantMessageId });
 
     const controller = new AbortController();
-    request.raw.on("close", () => controller.abort());
+    reply.raw.on("close", () => controller.abort());
 
     let buffer = "";
     let lastFlush = Date.now();

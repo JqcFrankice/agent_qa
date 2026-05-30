@@ -17,6 +17,26 @@ function fakeRegistry(events: ChatStreamEvent[]): Record<string, ProviderAdapter
   return { "aiwoo-claude": adapter, "aiwoo-codex": adapter };
 }
 
+function slowRegistry(): Record<string, ProviderAdapter> {
+  const adapter: ProviderAdapter = {
+    id: "aiwoo-claude",
+    async *stream(req: ChatRequest): AsyncIterable<ChatStreamEvent> {
+      for (let i = 0; i < 100; i++) {
+        if (req.signal.aborted) return;
+        yield { type: "delta", textDelta: `chunk${i} ` };
+        await new Promise<void>((resolveDelay, rejectDelay) => {
+          const timer = setTimeout(resolveDelay, 50);
+          req.signal.addEventListener("abort", () => {
+            clearTimeout(timer);
+            rejectDelay(new DOMException("aborted", "AbortError"));
+          }, { once: true });
+        });
+      }
+    }
+  };
+  return { "aiwoo-claude": adapter, "aiwoo-codex": adapter };
+}
+
 
 async function setup(username: string, registry?: Record<string, ProviderAdapter>) {
   const db = createTestDb();
@@ -123,6 +143,41 @@ describe("message streaming routes", () => {
     const res = await app.inject({ method: "POST", url: `/api/conversations/${id}/messages`, headers: { cookie }, payload: { content: "   " } });
     expect(res.statusCode).toBe(400);
     expect(res.json().error.code).toBe("CONV_VALIDATION");
+    await app.close();
+  });
+
+  it("marks assistant aborted and persists partial content when client disconnects", async () => {
+    const { app, db, cookie } = await setup("alice", slowRegistry());
+    const id = await createConversation(app, cookie);
+    await app.listen({ port: 0, host: "127.0.0.1" });
+    const address = app.server.address();
+    const port = typeof address === "object" && address ? address.port : 0;
+
+    const ac = new AbortController();
+    const res = await fetch(`http://127.0.0.1:${port}/api/conversations/${id}/messages`, {
+      method: "POST",
+      headers: { "content-type": "application/json", cookie },
+      body: JSON.stringify({ content: "long answer please" }),
+      signal: ac.signal
+    });
+    const reader = res.body!.getReader();
+    const decoder = new TextDecoder();
+    let received = "";
+    while (received.split("event: delta").length < 3) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      received += decoder.decode(value, { stream: true });
+    }
+    ac.abort();
+    await reader.cancel().catch(() => {});
+
+    await new Promise((r) => setTimeout(r, 300));
+
+    const messages = new MessagesRepository(db);
+    const rows = await messages.listForConversation(id, (await app.inject({ method: "GET", url: "/api/auth/me", headers: { cookie } }).then((r) => r.json())).user.id);
+    const assistant = rows.find((row) => row.role === "assistant")!;
+    expect(assistant.status).toBe("aborted");
+    expect(assistant.content.length).toBeGreaterThan(0);
     await app.close();
   });
 });
