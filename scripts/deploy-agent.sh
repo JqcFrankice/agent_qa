@@ -38,11 +38,19 @@ deploy_commit() {
   git reset --hard "${ref}"
   log "npm ci"
   npm ci --no-audit --no-fund
+  log "npm run build:shared"
+  # Rebuild the shared package's dist BEFORE migrate: migrate (tsx) imports
+  # config.ts -> @server-agent/shared, which resolves to shared/dist. Newer
+  # config code depends on exports that only exist after this rebuild, so a
+  # stale dist makes migrate fail with "does not provide an export named ...".
+  # `npm run build --workspaces` below does NOT run the root prebuild hook, so
+  # shared must be built explicitly here.
+  npm run build:shared
   log "npm run db:migrate"
   # Inject agent.env (DB_PATH + SESSION_COOKIE_SECRET) only for migrate, in a
   # subshell so NODE_ENV=production does NOT leak into npm ci / build above/below
-  # (production would skip devDependencies and break tsc). Without DB_PATH the
-  # migrate runs against the in-memory default and never persists.
+  # (production would skip devDependencies and break tsc). Reads the real DB via
+  # DB_PATH sourced from agent.env.
   ( set -a; . "${ENV_FILE}"; set +a; npm run db:migrate --workspace=@server-agent/server )
   log "npm run build"
   npm run build --workspaces --if-present
