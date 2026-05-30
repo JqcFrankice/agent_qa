@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll } from "vitest";
+import { createTestDb } from "./helpers/test-db.js";
 
 let buildApp: typeof import("../src/server.js").buildApp;
 
@@ -11,7 +12,7 @@ beforeAll(async () => {
 
 describe("buildApp", () => {
   it("registers /health and returns ok", async () => {
-    const app = await buildApp();
+    const app = await buildApp({ db: createTestDb() });
     const res = await app.inject({ method: "GET", url: "/api/health" });
     expect(res.statusCode).toBe(200);
     expect(res.json().status).toBe("ok");
@@ -19,7 +20,7 @@ describe("buildApp", () => {
   });
 
   it("registers /version and returns build info shape", async () => {
-    const app = await buildApp();
+    const app = await buildApp({ db: createTestDb() });
     const res = await app.inject({ method: "GET", url: "/api/version" });
     expect(res.statusCode).toBe(200);
     const body = res.json();

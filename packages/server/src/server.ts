@@ -4,6 +4,7 @@ import fastifyStatic from "@fastify/static";
 import { fileURLToPath } from "node:url";
 import type { AppDb } from "./db/client.js";
 import { openDatabase } from "./db/client.js";
+import { markStreamingMessagesAborted } from "./db/cleanup.js";
 import { SessionRepository } from "./db/repositories/sessions.js";
 import { loadConfig } from "./config.js";
 import { logger } from "./logger.js";
@@ -23,6 +24,7 @@ interface BuildAppOptions {
 export async function buildApp(options: BuildAppOptions = {}) {
   const config = loadConfig();
   const db = options.db ?? openDatabase(config.dbPath);
+  await markStreamingMessagesAborted(db);
   const app = Fastify({ logger });
 
   await app.register(fastifyCookie, {
