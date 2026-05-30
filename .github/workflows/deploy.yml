@@ -22,6 +22,7 @@ jobs:
           node-version: "22"
           cache: npm
       - run: npm ci
+      - run: npm run build:shared
       - run: npm run lint --workspaces --if-present
       - run: npm run typecheck --workspaces --if-present
       - run: npm run test --workspaces --if-present
