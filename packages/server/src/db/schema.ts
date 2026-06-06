@@ -31,6 +31,24 @@ export const inviteCodes = sqliteTable("invite_codes", {
   note: text("note")
 });
 
+export const skills = sqliteTable("skills", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  authorUserId: integer("author_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  description: text("description").notNull().default(""),
+  systemPrompt: text("system_prompt").notNull(),
+  defaultProvider: text("default_provider"),
+  defaultModel: text("default_model"),
+  isPublic: integer("is_public").notNull().default(0),
+  publishedAt: integer("published_at", { mode: "timestamp" }),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+  deletedAt: integer("deleted_at", { mode: "timestamp" })
+}, (t) => ({
+  byAuthorActive: index("idx_skills_author_active").on(t.authorUserId, t.deletedAt),
+  byPublic: index("idx_skills_public_published").on(t.isPublic, t.publishedAt)
+}));
+
 export const conversations = sqliteTable("conversations", {
   id: text("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -40,10 +58,12 @@ export const conversations = sqliteTable("conversations", {
   systemPrompt: text("system_prompt"),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
-  deletedAt: integer("deleted_at", { mode: "timestamp" })
+  deletedAt: integer("deleted_at", { mode: "timestamp" }),
+  skillId: integer("skill_id").references(() => skills.id)
 }, (t) => ({
   byUserUpdated: index("idx_conversations_user_updated").on(t.userId, t.updatedAt),
-  byUserActive: index("idx_conversations_user_active").on(t.userId, t.deletedAt)
+  byUserActive: index("idx_conversations_user_active").on(t.userId, t.deletedAt),
+  bySkill: index("idx_conversations_skill").on(t.skillId)
 }));
 
 export const messages = sqliteTable("messages", {
