@@ -121,10 +121,10 @@ export const skills = sqliteTable("skills", {
 把 `conversations` 定义里加一列：
 
 ```ts
-skillId: integer("skill_id").references((): any => skills.id),
+skillId: integer("skill_id").references(() => skills.id),
 ```
 
-注意：`conversations.skillId` 引用的 `skills` 在文件后面定义，Drizzle 用 lazy reference（`(): any => skills.id`）避免循环。
+注意：`skills` 表必须**放在 `conversations` 之前**（顺序：users → sessions → inviteCodes → skills → conversations → messages），这样 `conversations.skillId` 直接 `() => skills.id` 即可，不需要 lazy ref。如果 skills 放在 conversations 后面，TS 顺序解析下要 `(): any =>` 才能编译，会触发 `@typescript-eslint/no-explicit-any` lint 报错。
 
 - [ ] **Step 1.3：跑 migration 验证 schema**
 
