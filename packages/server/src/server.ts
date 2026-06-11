@@ -6,6 +6,7 @@ import type { AppDb } from "./db/client.js";
 import { openDatabase } from "./db/client.js";
 import { markStreamingMessagesAborted } from "./db/cleanup.js";
 import { SessionRepository } from "./db/repositories/sessions.js";
+import { SkillsRepository } from "./db/repositories/skills.js";
 import { loadConfig } from "./config.js";
 import { logger } from "./logger.js";
 import { sessionMiddleware } from "./middleware/session.js";
@@ -53,7 +54,7 @@ export async function buildApp(options: BuildAppOptions = {}) {
     db,
     secureCookies: config.nodeEnv === "production"
   });
-  await app.register(conversationRoutes, { prefix: "/api", db });
+  await app.register(conversationRoutes, { prefix: "/api", db, skills: new SkillsRepository(db) });
   await app.register(messageRoutes, {
     prefix: "/api",
     db,

@@ -6,7 +6,7 @@ export const providerIdSchema = z.enum(["aiwoo-claude", "aiwoo-codex"]);
 export const createConversationRequestSchema = z.object({
   provider: providerIdSchema,
   model: z.string().min(1),
-  systemPrompt: z.string().max(4000).optional(),
+  systemPrompt: z.string().max(8000).optional(),
   skillId: z.number().int().positive().optional()
 }).superRefine((value, ctx) => {
   if (!isKnownProviderModel(value.provider, value.model)) {

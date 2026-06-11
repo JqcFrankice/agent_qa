@@ -7,6 +7,7 @@ interface CreateConversationInput {
   provider: string;
   model: string;
   systemPrompt?: string | null;
+  skillId?: number | null;
 }
 
 export class ConversationsRepository {
@@ -18,7 +19,8 @@ export class ConversationsRepository {
       userId,
       provider: input.provider,
       model: input.model,
-      systemPrompt: input.systemPrompt ?? null
+      systemPrompt: input.systemPrompt ?? null,
+      skillId: input.skillId ?? null
     }).returning();
     return row;
   }
