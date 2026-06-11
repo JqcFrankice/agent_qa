@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import type { AppDb } from "../client.js";
 import { users } from "../schema.js";
 
@@ -18,6 +18,15 @@ export class UserRepository {
   async findById(id: number) {
     const [user] = await this.db.select().from(users).where(eq(users.id, id)).limit(1);
     return user ?? null;
+  }
+
+  async findManyByIds(ids: number[]) {
+    if (ids.length === 0) return new Map<number, { id: number; username: string }>();
+    const rows = await this.db
+      .select({ id: users.id, username: users.username })
+      .from(users)
+      .where(inArray(users.id, ids));
+    return new Map(rows.map((r) => [r.id, r] as const));
   }
 
   async list() {

@@ -15,6 +15,7 @@ import type { ProviderAdapter } from "./providers/types.js";
 import authRoutes from "./routes/auth/index.js";
 import conversationRoutes from "./routes/conversations.js";
 import messageRoutes from "./routes/messages.js";
+import skillsRoutes from "./routes/skills.js";
 import healthRoute from "./routes/health.js";
 import versionRoute from "./routes/version.js";
 import indexRoute from "./routes/index.js";
@@ -55,6 +56,7 @@ export async function buildApp(options: BuildAppOptions = {}) {
     secureCookies: config.nodeEnv === "production"
   });
   await app.register(conversationRoutes, { prefix: "/api", db, skills: new SkillsRepository(db) });
+  await app.register(skillsRoutes, { prefix: "/api", db });
   await app.register(messageRoutes, {
     prefix: "/api",
     db,
