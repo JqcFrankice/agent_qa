@@ -55,6 +55,7 @@ export interface ConversationDto {
   title: string | null;
   provider: string;
   model: string;
+  skillId: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -72,7 +73,7 @@ export function listConversations() {
   return request<{ conversations: ConversationDto[] }>("/api/conversations");
 }
 
-export function createConversation(input: { provider: string; model: string; systemPrompt?: string }) {
+export function createConversation(input: { provider: string; model: string; systemPrompt?: string; skillId?: number }) {
   return request<{ conversation: ConversationDto }>("/api/conversations", { method: "POST", body: JSON.stringify(input) });
 }
 
