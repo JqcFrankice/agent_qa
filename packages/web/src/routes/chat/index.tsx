@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import type { ProviderId } from "@server-agent/shared";
+import type { ProviderId, SkillDto } from "@server-agent/shared";
 import {
   createConversation,
   deleteConversation,
@@ -69,6 +69,15 @@ export function ChatPage() {
   const meQuery = useQuery({ queryKey: ["me"], queryFn: me, retry: false });
   const [activeId, setActiveId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  // skillForNew: 选中 skill 后等 NewConversationDialog 接入（Task 9）
+  const [, setSkillForNew] = useState<SkillDto | null>(null);
+  // editSkill: 编辑 skill 的 dialog UI 留给 Task 8/9 完成；此处仅占位 state
+  const [, setEditSkill] = useState<SkillDto | null>(null);
+
+  const handleUseSkill = useCallback((skill: SkillDto) => {
+    setSkillForNew(skill);
+    setDialogOpen(true);
+  }, []);
 
   const conversationsQuery = useQuery({ queryKey: ["conversations"], queryFn: listConversations });
   const conversations = conversationsQuery.data?.conversations ?? [];
@@ -146,6 +155,8 @@ export function ChatPage() {
         onRename={(id, title) => renameMutation.mutate({ id, title })}
         onDelete={(id) => deleteMutation.mutate(id)}
         onLogout={() => logoutMutation.mutate()}
+        onUseSkill={handleUseSkill}
+        onEditSkill={setEditSkill}
       />
       <main className="flex flex-1 flex-col">
         {activeId ? (
