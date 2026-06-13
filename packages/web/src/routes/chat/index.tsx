@@ -71,9 +71,8 @@ export function ChatPage() {
   const meQuery = useQuery({ queryKey: ["me"], queryFn: me, retry: false });
   const [activeId, setActiveId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  // skillForNew: 选中 skill 后等 NewConversationDialog 接入（Task 9）
-  const [, setSkillForNew] = useState<SkillDto | null>(null);
-  // editSkill: 编辑 skill 的 dialog UI 留给 Task 9 完成；此处仅占位 state
+  const [skillForNew, setSkillForNew] = useState<SkillDto | null>(null);
+  // editSkill: 编辑 skill 的 dialog UI 留给后续 phase 完成；此处仅占位 state
   const [, setEditSkill] = useState<SkillDto | null>(null);
   const [saveSkillOpen, setSaveSkillOpen] = useState(false);
   const [skillDraft, setSkillDraft] = useState<SkillDraftDto | null>(null);
@@ -103,6 +102,7 @@ export function ChatPage() {
       await queryClient.invalidateQueries({ queryKey: ["conversations"] });
       setActiveId(conversation.id);
       setDialogOpen(false);
+      setSkillForNew(null);
     }
   });
 
@@ -207,9 +207,13 @@ export function ChatPage() {
       </main>
       <NewConversationDialog
         open={dialogOpen}
-        onOpenChange={setDialogOpen}
+        onOpenChange={(value) => {
+          setDialogOpen(value);
+          if (!value) setSkillForNew(null);
+        }}
+        skill={skillForNew}
         onCreate={(input) =>
-          createMutation.mutate(input as { provider: ProviderId; model: string; systemPrompt?: string })
+          createMutation.mutate(input as { provider: ProviderId; model: string; systemPrompt?: string; skillId?: number })
         }
       />
       <SaveSkillDialog
