@@ -281,6 +281,64 @@ gh pr merge <n> --merge
 
 替代：用 `npm run admin -- invite create ...`（生产服务器有此 script），让 admin CLI 在自己进程里跑完再退出，server 重新打开 DB 时就看到了。
 
+### 6.11 ExitWorktree 后主仓 deps 需重装 + build:shared
+
+退出 worktree 回主仓后（特别是合并完 Phase 工作），**主仓 `node_modules` 可能跟 worktree 不一致**：
+
+```bash
+# 主仓视角：
+ExitWorktree --action=remove
+# 之后回到主仓直接 db:migrate / typecheck 会报：
+# Cannot find package 'better-sqlite3'
+# Cannot find package '/.../@server-agent/shared/dist/index.js'
+```
+
+**修复**：
+
+```bash
+npm install                        # 主仓 deps
+npm -w @server-agent/shared run build  # 重生成 shared/dist
+```
+
+然后 `db:migrate` / typecheck / test 才正常。这条跟 §6.1 是同一类问题（shared/dist 是 server tsx 运行时依赖），但触发时机是 worktree 切换边界。
+
+### 6.12 Drizzle text 字段存 JSON 时 repo 层负责 stringify/parse
+
+`packages/server/src/db/schema.ts` 用 `text("input_schema")` / `text("tags")` 存 JSON 内容时，**Drizzle 不会自动序列化 / 反序列化**。
+
+正确做法：
+
+```ts
+// 写入（repo 层）
+inputSchema: input.inputSchema ? JSON.stringify(input.inputSchema) : null,
+tags: JSON.stringify(input.tags ?? []),
+
+// 读出（route 的 toDto）
+inputSchema: row.inputSchema ? JSON.parse(row.inputSchema) : null,
+tags: JSON.parse(row.tags),
+```
+
+错误做法：直接 `set({ inputSchema: someArray })` 会被 better-sqlite3 拒绝（绑定 array 到 text 列），或者更糟：silently 落地为 `[object Object]` 字面量。
+
+**默认值约定**：`tags` 列在 SQL 用 `DEFAULT '[]'`，确保历史行 / 不传该字段的新行也有合法 JSON，前端 `JSON.parse` 不会崩。
+
+### 6.13 测试 fixture 与 migration 内建数据冲突时用 findOrCreate
+
+某些 migration 会 `INSERT OR IGNORE` 引入约束性数据（如 `0003_qa_skills.sql` 的 `system` 用户）。测试 helper 直接 `users.create("system", "hash")` 会触发 unique 约束错。
+
+**解决**：在测试 helper 里用 findOrCreate 模式：
+
+```ts
+async function user(db, name) {
+  const repo = new UserRepository(db);
+  const existing = await repo.findByUsername(name);
+  if (existing) return existing;
+  return repo.create(name, "hash");
+}
+```
+
+这条让 test fixture 跟 migration baked-in 数据共存，不耦合"我建的 user 是不是已存在"的实现细节。
+
 ## 7. 依赖与版本
 
 | 类目 | 版本/选择 |
