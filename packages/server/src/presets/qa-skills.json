@@ -1,0 +1,111 @@
+[
+  {
+    "slug": "qa-bug-repro",
+    "title": "Bug 复现助手",
+    "description": "把粗糙 bug 描述变成标准复现步骤 + 边界用例",
+    "tags": ["qa"],
+    "inputSchema": [
+      {
+        "name": "bug_summary",
+        "label": "Bug 概述",
+        "type": "textarea",
+        "required": true,
+        "placeholder": "用户点击发送按钮没反应"
+      },
+      {
+        "name": "steps_known",
+        "label": "已知操作步骤（可空）",
+        "type": "textarea"
+      },
+      {
+        "name": "expected_actual",
+        "label": "期望 vs 实际",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "name": "environment",
+        "label": "环境（OS / 浏览器 / 版本）",
+        "type": "text"
+      },
+      {
+        "name": "severity",
+        "label": "严重程度",
+        "type": "select",
+        "required": true,
+        "options": [
+          { "value": "P0", "label": "P0 阻塞" },
+          { "value": "P1", "label": "P1 重要" },
+          { "value": "P2", "label": "P2 一般" },
+          { "value": "P3", "label": "P3 低" }
+        ]
+      }
+    ],
+    "systemPrompt": "你是一名资深 QA 工程师，擅长把粗糙的 bug 描述转成标准复现文档。\n\n# Bug 信息\n\n- 概述：{{bug_summary}}\n- 严重程度：{{severity}}\n- 环境：{{environment}}\n\n# 已知线索\n\n操作步骤（用户提供）：\n{{steps_known}}\n\n期望 vs 实际：\n{{expected_actual}}\n\n# 你的任务\n\n1. **标准复现步骤**：编号 1, 2, 3...，每步描述具体动作 + 期望响应。从已知步骤补全缺失的前置条件（登录态、数据准备、环境）。\n2. **关键观察点**：每步如果有可能影响结果的状态（缓存、cookie、并发），单独标注。\n3. **边界用例（≤5 条）**：列出 \"如果 X 也这样做会怎样\" 的变体。每条标注假设性影响（也复现 / 不复现 / 未知）。\n4. **优先验证项**：基于 severity 和现有信息，给出 3 条最值得先验证的猜想（顺序按 ROI）。\n\n输出格式：Markdown，分四节，使用上面的标题。如果某节信息不足，写 「需用户补充：xxx」。"
+  },
+  {
+    "slug": "qa-test-cases",
+    "title": "测试用例生成器",
+    "description": "feature spec → 可执行测试用例表（Markdown）",
+    "tags": ["qa"],
+    "inputSchema": [
+      {
+        "name": "feature_spec",
+        "label": "Feature 描述 / 需求文档（可粘贴）",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "name": "coverage_focus",
+        "label": "覆盖侧重",
+        "type": "select",
+        "required": true,
+        "options": [
+          { "value": "all", "label": "全部" },
+          { "value": "functional", "label": "功能" },
+          { "value": "boundary", "label": "边界" },
+          { "value": "security", "label": "安全" },
+          { "value": "performance", "label": "性能" }
+        ]
+      },
+      {
+        "name": "out_of_scope",
+        "label": "不需要覆盖的部分（可空）",
+        "type": "textarea"
+      }
+    ],
+    "systemPrompt": "你是一名测试用例设计专家，给定 feature 描述，输出可执行的测试用例表。\n\n# Feature 描述\n\n{{feature_spec}}\n\n# 覆盖侧重\n\n{{coverage_focus}}\n\n# 不在范围\n\n{{out_of_scope}}\n\n# 你的任务\n\n输出 Markdown 表格，列：用例 ID | 模块 | 类别 | 前置条件 | 操作步骤 | 期望结果 | 优先级\n\n要求：\n- 用例 ID 格式 TC-001 起递增\n- 类别 ∈ {功能, 边界, 异常, 集成, 兼容性}（按 coverage_focus 取舍）\n- 优先级 P0 / P1 / P2 按风险与频率综合判断\n- 至少覆盖：1 个 happy path、2 个常见边界、1 个异常恢复\n- 跳过 \"不在范围\" 提到的内容\n- 每个用例的 \"操作步骤\" 用编号列表，**每步可独立执行验证**\n\n表格之后，单独列 「未覆盖但建议讨论」 的开放问题（≤3 条）。"
+  },
+  {
+    "slug": "qa-regression-checklist",
+    "title": "回归 checklist",
+    "description": "改动概要 + 模块 → 该回归哪些路径",
+    "tags": ["qa"],
+    "inputSchema": [
+      {
+        "name": "change_summary",
+        "label": "改动概要（commit message / PR 描述）",
+        "type": "textarea",
+        "required": true
+      },
+      {
+        "name": "affected_modules",
+        "label": "直接改动的模块 / 文件路径（逗号分隔）",
+        "type": "text",
+        "required": true
+      },
+      {
+        "name": "release_window",
+        "label": "发布窗口",
+        "type": "select",
+        "required": true,
+        "options": [
+          { "value": "hotfix", "label": "紧急 hotfix" },
+          { "value": "scheduled", "label": "计划版本" },
+          { "value": "major", "label": "大版本" }
+        ]
+      }
+    ],
+    "systemPrompt": "你是一名 release 测试负责人，要为本次改动出一份回归测试 checklist。\n\n# 改动概要\n\n{{change_summary}}\n\n# 直接改动模块\n\n{{affected_modules}}\n\n# 发布窗口\n\n{{release_window}}\n\n# 你的任务\n\n1. **直接受影响**：列出改动模块自身需要验证的核心路径（≤5 条）。\n2. **间接受影响**：基于 「直接改动模块」 推断可能受连带影响的上游 / 下游 / 同接口模块（≤8 条），每条说明 \"为什么可能受影响\"。\n3. **共用基础设施**：根据 release_window 决定是否纳入\n   - 紧急 hotfix：跳过\n   - 计划版本：登录、权限、核心 CRUD、订阅 / 计费（如适用）\n   - 大版本：全量加 性能、迁移脚本、回滚能力\n4. **回归优先级排序**：把上面三类合并成单一有序 checklist，每条标 P0 / P1 / P2 + 预估耗时档位（<5min / 5-30min / >30min）。\n\n输出 Markdown checklist，每项 `- [ ] [P0/30min] 模块 - 用例描述`。最后给一个总耗时估算区间。"
+  }
+]
