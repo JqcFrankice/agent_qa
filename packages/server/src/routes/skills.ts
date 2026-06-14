@@ -27,7 +27,12 @@ interface SkillRow {
   publishedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
+  inputSchema: string | null;
+  tags: string;
+  slug: string | null;
 }
+
+const SYSTEM_USERNAME = "system";
 
 function toDto(row: SkillRow, currentUserId: number, authorUsername: string) {
   return {
@@ -42,7 +47,11 @@ function toDto(row: SkillRow, currentUserId: number, authorUsername: string) {
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
     authorUsername,
-    isOwn: row.authorUserId === currentUserId
+    isOwn: row.authorUserId === currentUserId,
+    inputSchema: row.inputSchema ? JSON.parse(row.inputSchema) : null,
+    tags: JSON.parse(row.tags),
+    slug: row.slug,
+    isSystem: authorUsername === SYSTEM_USERNAME
   };
 }
 
@@ -76,7 +85,9 @@ const skillsRoutes: FastifyPluginAsync<SkillRouteDeps> = async (app, deps) => {
       description: parsed.data.description,
       systemPrompt: parsed.data.systemPrompt,
       defaultProvider: parsed.data.defaultProvider ?? null,
-      defaultModel: parsed.data.defaultModel ?? null
+      defaultModel: parsed.data.defaultModel ?? null,
+      inputSchema: parsed.data.inputSchema ?? null,
+      tags: parsed.data.tags ?? []
     });
     if (parsed.data.isPublic) {
       const published = await repo.publish(row.id, user.id);

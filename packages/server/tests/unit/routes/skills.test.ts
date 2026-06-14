@@ -137,4 +137,60 @@ describe("skills routes", () => {
     expect(draft.systemPrompt).toContain("second user message");
     await app.close();
   });
+
+  it("system preset rejects non-author PATCH and DELETE", async () => {
+    const { app, db, cookie } = await buildLoggedInApp("alice");
+    const { UserRepository } = await import("../../../src/db/repositories/users.js");
+    const { SkillsRepository } = await import("../../../src/db/repositories/skills.js");
+    const userRepo = new UserRepository(db);
+    let sysUser = await userRepo.findByUsername("system");
+    if (!sysUser) sysUser = await userRepo.create("system", "!disabled");
+    const skillsRepo = new SkillsRepository(db);
+    const preset = await skillsRepo.upsertBySlug(sysUser.id, {
+      slug: "qa-test", title: "Test Preset", description: "", systemPrompt: "p", isPublic: true
+    });
+
+    const list = await app.inject({ method: "GET", url: "/api/skills", headers: { cookie } });
+    expect(list.statusCode).toBe(200);
+    const found = list.json().skills.find((s: { id: number }) => s.id === preset.id);
+    expect(found).toBeDefined();
+    expect(found.isOwn).toBe(false);
+    expect(found.isSystem).toBe(true);
+    expect(found.tags).toEqual([]);
+    expect(found.inputSchema).toBeNull();
+    expect(found.slug).toBe("qa-test");
+
+    const patch = await app.inject({
+      method: "PATCH", url: `/api/skills/${preset.id}`, headers: { cookie },
+      payload: { title: "hijack" }
+    });
+    expect(patch.statusCode).toBe(404);
+
+    const del = await app.inject({
+      method: "DELETE", url: `/api/skills/${preset.id}`, headers: { cookie }
+    });
+    expect(del.statusCode).toBe(404);
+
+    await app.close();
+  });
+
+  it("POST /api/skills accepts inputSchema and tags", async () => {
+    const { app, cookie } = await buildLoggedInApp("alice");
+    const res = await app.inject({
+      method: "POST", url: "/api/skills", headers: { cookie },
+      payload: {
+        title: "Custom",
+        systemPrompt: "Hello {{name}}",
+        inputSchema: [{ name: "name", label: "Your name", type: "text", required: true }],
+        tags: ["custom"]
+      }
+    });
+    expect(res.statusCode).toBe(201);
+    const skill = res.json().skill;
+    expect(skill.inputSchema).toEqual([{ name: "name", label: "Your name", type: "text", required: true }]);
+    expect(skill.tags).toEqual(["custom"]);
+    expect(skill.slug).toBeNull();
+    expect(skill.isSystem).toBe(false);
+    await app.close();
+  });
 });
