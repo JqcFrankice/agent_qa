@@ -1,4 +1,4 @@
-import { Globe, Lock, MoreVertical, Pencil, Trash2 } from "lucide-react";
+import { CheckCircle2, Clock, Globe, Lock, MoreVertical, Pencil, Trash2, XCircle } from "lucide-react";
 import type { SkillDto } from "@server-agent/shared";
 import { Button } from "../../components/ui/button.js";
 import {
@@ -16,6 +16,21 @@ interface SkillItemProps {
   onTogglePublic: () => void;
 }
 
+function ReviewBadge({ skill }: { skill: SkillDto }) {
+  if (!skill.isPublic) return null;
+  if (skill.reviewStatus === "approved") {
+    return <CheckCircle2 className="inline h-3 w-3 text-green-500" aria-label="已通过审核" />;
+  }
+  if (skill.reviewStatus === "pending") {
+    return <Clock className="inline h-3 w-3 text-yellow-500" aria-label="审核中" />;
+  }
+  return (
+    <span title={skill.rejectReason ?? "审核未通过"} className="inline-flex">
+      <XCircle className="inline h-3 w-3 text-red-500" aria-label="审核未通过" />
+    </span>
+  );
+}
+
 export function SkillItem({ skill, onUse, onEdit, onDelete, onTogglePublic }: SkillItemProps) {
   return (
     <div className="group flex items-center gap-2 rounded px-2 py-1.5 hover:bg-zinc-800">
@@ -24,12 +39,13 @@ export function SkillItem({ skill, onUse, onEdit, onDelete, onTogglePublic }: Sk
         onClick={onUse}
         title={skill.description || skill.title}
       >
-        <span className="mr-1">
+        <span className="mr-1 inline-flex items-center gap-0.5">
           {skill.isPublic ? (
             <Globe className="inline h-3 w-3" />
           ) : (
             <Lock className="inline h-3 w-3" />
           )}
+          <ReviewBadge skill={skill} />
         </span>
         {skill.title}
         {!skill.isOwn && (

@@ -79,6 +79,11 @@ export function SaveSkillDialog({ open, draft, isSubmitting, onOpenChange, onSub
             />
             公开发布（其他用户可见并复用）
           </label>
+          {isPublic && (
+            <p className="ml-6 text-xs text-zinc-500">
+              将提交人工审核。审核通过后才会进入公开列表。
+            </p>
+          )}
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={() => onOpenChange(false)}>取消</Button>
             <Button
