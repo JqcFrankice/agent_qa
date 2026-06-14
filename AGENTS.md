@@ -244,9 +244,11 @@ GitHub → 仓库 Settings → Actions → General → Disable actions。
 - 每个 Phase 的 task 建议单独 commit（plan 里也是这么列的）
 - PR 合并到 `main` 用 merge commit（保留分支历史），不要 squash
 
-### 6.8 不要直接改 main 上的代码
+### 6.8 不要直接改 main 上的代码（开发阶段豁免中）
 
-所有改动走 worktree 分支 + PR：
+> **当前阶段豁免**（2026-06-14 起）：项目处于开发期，无真实生产用户压力，**默认直接在 main 上改 + push**，触发 GH Actions 自动部署。本节的 worktree+PR 流程仅在用户明确要求 / 大改动 / 切换到生产阶段时启用。
+
+切换到生产阶段后再恢复以下流程：
 
 ```bash
 git worktree add .claude/worktrees/<feature> -b worktree-<feature>
@@ -258,6 +260,8 @@ gh pr merge <n> --merge
 ```
 
 `.claude/worktrees/` 已默认被 git 忽略（`.claude/` 没 ignore 但 worktree 在内部不会污染主仓）。
+
+无论哪种模式，仍要遵守：commit message 规范（§6.7）、push 前自测 lint/typecheck/test/build、不绕 hook、destructive 操作（force push、reset --hard）必须用户明确确认。
 
 ### 6.9 Drizzle schema 表声明顺序：被引用的表先声明
 
