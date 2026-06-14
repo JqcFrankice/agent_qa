@@ -340,6 +340,27 @@ async function user(db, name) {
 
 这条让 test fixture 跟 migration baked-in 数据共存，不耦合"我建的 user 是不是已存在"的实现细节。
 
+### 6.14 lucide-react 图标 SVG 不接受 title prop
+
+直接给 `<XCircle title="..." />` 传 `title` 会触发 TS 报错：
+
+```
+error TS2322: Type '{ className: string; "aria-label": string; title: string; }' is not assignable to
+  Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>
+```
+
+**原因**：lucide-react 图标 props 类型来自 `LucideProps`，不含 SVG 的 `title` attribute。HTML 里 `<svg title>` 也不是合法属性（title 是 element 名 `<title>` 在 svg 内部）。
+
+**正确做法**：用 `<span title="...">` wrap 图标实现 hover tooltip：
+
+```tsx
+<span title={skill.rejectReason ?? "审核未通过"} className="inline-flex">
+  <XCircle className="h-3 w-3 text-red-500" aria-label="审核未通过" />
+</span>
+```
+
+Phase 5 SkillItem ReviewBadge 实施时遇到，统一这个 pattern。
+
 ## 7. 依赖与版本
 
 | 类目 | 版本/选择 |
