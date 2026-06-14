@@ -213,6 +213,7 @@ GitHub → 仓库 Settings → Actions → General → Disable actions。
 - 默认模型用 **`claude-opus-4-8`**（已实测可用）。
 - 加新模型到白名单（`packages/shared/src/providers/models.ts`）前，必须用真实 key `curl -X POST https://aiwoo.vip/v1/messages` 实测能流式返回。
 - 报错信息里有 `under group <name>` 字样的就是分组拒。
+- **2026-06-14 实测**：`claude-opus-4-8` / `claude-sonnet-4-6` 都返 `UPSTREAM_MODEL_UNAVAILABLE`，`gpt-5.5`（codex 路径）正常。aiwoo 模型可用性会随时间漂移；上游不可用时 SSE 会发 `event: error data: {"code":"UPSTREAM_MODEL_UNAVAILABLE",...}`，前端 toast 提示用户切模型。
 
 ### 6.3 aiwoo base URL：Claude 不带 /v1，Codex 带 /v1
 
