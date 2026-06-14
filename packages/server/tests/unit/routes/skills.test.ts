@@ -55,6 +55,14 @@ describe("skills routes", () => {
       payload: { title: "shared", systemPrompt: "x", isPublic: true }
     });
     expect(aliceSkill.statusCode).toBe(201);
+    // approve as a virtual admin（用 system 用户充当 reviewedBy）
+    const { UserRepository } = await import("../../../src/db/repositories/users.js");
+    const { SkillsRepository } = await import("../../../src/db/repositories/skills.js");
+    const userRepo = new UserRepository(alice.db);
+    let sys = await userRepo.findByUsername("system");
+    if (!sys) sys = await userRepo.create("system", "!disabled");
+    await new SkillsRepository(alice.db).approve(aliceSkill.json().skill.id, sys.id);
+
     const list = await alice.app.inject({
       method: "GET",
       url: "/api/skills",
@@ -147,7 +155,7 @@ describe("skills routes", () => {
     if (!sysUser) sysUser = await userRepo.create("system", "!disabled");
     const skillsRepo = new SkillsRepository(db);
     const preset = await skillsRepo.upsertBySlug(sysUser.id, {
-      slug: "qa-test", title: "Test Preset", description: "", systemPrompt: "p", isPublic: true
+      slug: "qa-test", title: "Test Preset", description: "", systemPrompt: "p", isPublic: true, reviewStatus: "approved"
     });
 
     const list = await app.inject({ method: "GET", url: "/api/skills", headers: { cookie } });

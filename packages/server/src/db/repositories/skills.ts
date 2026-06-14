@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull, or } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, or, sql } from "drizzle-orm";
 import type { SkillInputField } from "@server-agent/shared";
 import type { AppDb } from "../client.js";
 import { skills } from "../schema.js";
@@ -33,6 +33,7 @@ interface UpsertSkillInput {
   inputSchema?: SkillInputField[] | null;
   tags?: string[];
   isPublic?: boolean;
+  reviewStatus?: "pending" | "approved" | "rejected";
 }
 
 export class SkillsRepository {
@@ -55,7 +56,10 @@ export class SkillsRepository {
   async listAvailableTo(userId: number) {
     return this.db.select().from(skills).where(and(
       isNull(skills.deletedAt),
-      or(eq(skills.authorUserId, userId), eq(skills.isPublic, 1))
+      or(
+        eq(skills.authorUserId, userId),
+        and(eq(skills.isPublic, 1), eq(skills.reviewStatus, "approved"))
+      )
     )).orderBy(desc(skills.updatedAt));
   }
 
@@ -72,7 +76,10 @@ export class SkillsRepository {
     const [row] = await this.db.select().from(skills).where(and(
       eq(skills.id, id),
       isNull(skills.deletedAt),
-      or(eq(skills.authorUserId, userId), eq(skills.isPublic, 1))
+      or(
+        eq(skills.authorUserId, userId),
+        and(eq(skills.isPublic, 1), eq(skills.reviewStatus, "approved"))
+      )
     )).limit(1);
     return row ?? null;
   }
@@ -93,6 +100,13 @@ export class SkillsRepository {
       setValues.inputSchema = patch.inputSchema ? JSON.stringify(patch.inputSchema) : null;
     }
     if (patch.tags !== undefined) setValues.tags = JSON.stringify(patch.tags);
+    const needsReReview = patch.systemPrompt !== undefined || patch.inputSchema !== undefined;
+    if (needsReReview) {
+      setValues.reviewStatus = "pending";
+      setValues.reviewedAt = null;
+      setValues.reviewedBy = null;
+      setValues.rejectReason = null;
+    }
     const result = await this.db.update(skills).set(setValues)
       .where(and(eq(skills.id, id), eq(skills.authorUserId, userId), isNull(skills.deletedAt)))
       .returning();
@@ -101,7 +115,15 @@ export class SkillsRepository {
 
   async publish(id: number, userId: number) {
     const result = await this.db.update(skills)
-      .set({ isPublic: 1, publishedAt: new Date(), updatedAt: new Date() })
+      .set({
+        isPublic: 1,
+        publishedAt: new Date(),
+        reviewStatus: "pending",
+        reviewedAt: null,
+        reviewedBy: null,
+        rejectReason: null,
+        updatedAt: new Date()
+      })
       .where(and(eq(skills.id, id), eq(skills.authorUserId, userId), isNull(skills.deletedAt)))
       .returning();
     return result[0] ?? null;
@@ -123,12 +145,52 @@ export class SkillsRepository {
     return result.length > 0;
   }
 
+  async listPending() {
+    return this.db.select().from(skills).where(and(
+      eq(skills.reviewStatus, "pending"),
+      eq(skills.isPublic, 1),
+      isNull(skills.deletedAt)
+    )).orderBy(asc(skills.createdAt));
+  }
+
+  async listByReviewStatus(status: "approved" | "rejected") {
+    return this.db.select().from(skills).where(and(
+      eq(skills.reviewStatus, status),
+      eq(skills.isPublic, 1),
+      isNull(skills.deletedAt)
+    )).orderBy(desc(skills.reviewedAt));
+  }
+
+  async approve(id: number, adminUserId: number) {
+    const [row] = await this.db.update(skills).set({
+      reviewStatus: "approved",
+      reviewedAt: new Date(),
+      reviewedBy: adminUserId,
+      rejectReason: null,
+      version: sql`${skills.version} + 1`,
+      updatedAt: new Date()
+    }).where(and(eq(skills.id, id), isNull(skills.deletedAt))).returning();
+    return row ?? null;
+  }
+
+  async reject(id: number, adminUserId: number, reason: string) {
+    const [row] = await this.db.update(skills).set({
+      reviewStatus: "rejected",
+      reviewedAt: new Date(),
+      reviewedBy: adminUserId,
+      rejectReason: reason,
+      updatedAt: new Date()
+    }).where(and(eq(skills.id, id), isNull(skills.deletedAt))).returning();
+    return row ?? null;
+  }
+
   async upsertBySlug(authorUserId: number, input: UpsertSkillInput) {
     const now = new Date();
     const [existing] = await this.db.select().from(skills).where(eq(skills.slug, input.slug)).limit(1);
     if (existing && existing.authorUserId !== authorUserId) {
       throw new Error(`slug ${input.slug} already owned by user ${existing.authorUserId}`);
     }
+    const reviewStatus = input.reviewStatus ?? "pending";
     const values = {
       authorUserId,
       slug: input.slug,
@@ -141,6 +203,8 @@ export class SkillsRepository {
       tags: JSON.stringify(input.tags ?? []),
       isPublic: input.isPublic ? 1 : 0,
       publishedAt: input.isPublic ? now : null,
+      reviewStatus,
+      reviewedAt: reviewStatus === "approved" ? now : null,
       updatedAt: now
     };
     if (existing) {
