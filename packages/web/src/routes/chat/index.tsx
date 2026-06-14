@@ -19,6 +19,7 @@ import { MessageList, type ChatMessage } from "./MessageList.js";
 import { Composer } from "./Composer.js";
 import { NewConversationDialog } from "./NewConversationDialog.js";
 import { SaveSkillDialog } from "./SaveSkillDialog.js";
+import { SkillFormDialog } from "./SkillFormDialog.js";
 
 interface StreamState {
   conversationId: string;
@@ -76,9 +77,28 @@ export function ChatPage() {
   const [, setEditSkill] = useState<SkillDto | null>(null);
   const [saveSkillOpen, setSaveSkillOpen] = useState(false);
   const [skillDraft, setSkillDraft] = useState<SkillDraftDto | null>(null);
+  // Phase 4: SkillFormDialog 链路
+  const [skillFormOpen, setSkillFormOpen] = useState(false);
+  const [skillForForm, setSkillForForm] = useState<SkillDto | null>(null);
+  const [interpolatedPrompt, setInterpolatedPrompt] = useState<string | null>(null);
 
   const handleUseSkill = useCallback((skill: SkillDto) => {
+    if (skill.inputSchema && skill.inputSchema.length > 0) {
+      // Phase 4: 先弹动态表单
+      setSkillForForm(skill);
+      setSkillFormOpen(true);
+    } else {
+      // Phase 3: 直接弹 NewConversationDialog
+      setSkillForNew(skill);
+      setDialogOpen(true);
+    }
+  }, []);
+
+  const handleFormContinue = useCallback((skill: SkillDto, finalPrompt: string) => {
+    setSkillFormOpen(false);
+    setSkillForForm(null);
     setSkillForNew(skill);
+    setInterpolatedPrompt(finalPrompt);
     setDialogOpen(true);
   }, []);
 
@@ -103,6 +123,7 @@ export function ChatPage() {
       setActiveId(conversation.id);
       setDialogOpen(false);
       setSkillForNew(null);
+      setInterpolatedPrompt(null);
     }
   });
 
@@ -209,12 +230,25 @@ export function ChatPage() {
         open={dialogOpen}
         onOpenChange={(value) => {
           setDialogOpen(value);
-          if (!value) setSkillForNew(null);
+          if (!value) {
+            setSkillForNew(null);
+            setInterpolatedPrompt(null);
+          }
         }}
         skill={skillForNew}
+        presetPrompt={interpolatedPrompt}
         onCreate={(input) =>
           createMutation.mutate(input as { provider: ProviderId; model: string; systemPrompt?: string; skillId?: number })
         }
+      />
+      <SkillFormDialog
+        open={skillFormOpen}
+        skill={skillForForm}
+        onOpenChange={(value) => {
+          setSkillFormOpen(value);
+          if (!value) setSkillForForm(null);
+        }}
+        onContinue={handleFormContinue}
       />
       <SaveSkillDialog
         open={saveSkillOpen}

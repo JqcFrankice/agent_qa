@@ -10,13 +10,14 @@ interface NewConversationDialogProps {
   onCreate: (input: { provider: ProviderId; model: string; systemPrompt?: string; skillId?: number }) => void;
   defaultProvider?: ProviderId;
   skill?: SkillDto | null;
+  presetPrompt?: string | null;
 }
 
 function isProviderId(value: string | null | undefined): value is ProviderId {
   return value !== null && value !== undefined && value in PROVIDER_MODELS;
 }
 
-export function NewConversationDialog({ open, onOpenChange, onCreate, defaultProvider, skill }: NewConversationDialogProps) {
+export function NewConversationDialog({ open, onOpenChange, onCreate, defaultProvider, skill, presetPrompt }: NewConversationDialogProps) {
   const providers = Object.keys(PROVIDER_MODELS) as ProviderId[];
   const [provider, setProvider] = useState<ProviderId>(defaultProvider ?? providers[0]);
   const [model, setModel] = useState<string>(PROVIDER_MODELS[provider][0].id);
@@ -24,23 +25,36 @@ export function NewConversationDialog({ open, onOpenChange, onCreate, defaultPro
 
   useEffect(() => {
     if (!open) return;
+    if (presetPrompt !== null && presetPrompt !== undefined) {
+      // Phase 4: SkillFormDialog interpolate 后传入的最终文本
+      const nextProvider = (skill && isProviderId(skill.defaultProvider))
+        ? skill.defaultProvider
+        : (defaultProvider ?? providers[0]);
+      const allowedModels = PROVIDER_MODELS[nextProvider];
+      const skillModel = skill?.defaultModel;
+      const matched = skillModel ? allowedModels.find((item) => item.id === skillModel) : undefined;
+      setProvider(nextProvider);
+      setModel(matched?.id ?? allowedModels[0].id);
+      setSystemPrompt(presetPrompt);
+      return;
+    }
     if (skill) {
+      // Phase 3 路径：无 inputSchema 的 skill prefill
       const nextProvider = isProviderId(skill.defaultProvider) ? skill.defaultProvider : (defaultProvider ?? providers[0]);
       const allowedModels = PROVIDER_MODELS[nextProvider];
       const skillModel = skill.defaultModel;
       const matched = skillModel ? allowedModels.find((item) => item.id === skillModel) : undefined;
-      const nextModel = matched?.id ?? allowedModels[0].id;
       setProvider(nextProvider);
-      setModel(nextModel);
+      setModel(matched?.id ?? allowedModels[0].id);
       setSystemPrompt(skill.systemPrompt);
-    } else {
-      const nextProvider = defaultProvider ?? providers[0];
-      setProvider(nextProvider);
-      setModel(PROVIDER_MODELS[nextProvider][0].id);
-      setSystemPrompt("");
+      return;
     }
+    const nextProvider = defaultProvider ?? providers[0];
+    setProvider(nextProvider);
+    setModel(PROVIDER_MODELS[nextProvider][0].id);
+    setSystemPrompt("");
     // providers 列表稳定派生自 PROVIDER_MODELS，无需进依赖
-  }, [open, skill, defaultProvider]);
+  }, [open, skill, defaultProvider, presetPrompt]);
 
   const onProviderChange = (next: ProviderId) => {
     setProvider(next);
