@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, index, uniqueIndex } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 
 export const users = sqliteTable("users", {
@@ -43,10 +43,14 @@ export const skills = sqliteTable("skills", {
   publishedAt: integer("published_at", { mode: "timestamp" }),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
-  deletedAt: integer("deleted_at", { mode: "timestamp" })
+  deletedAt: integer("deleted_at", { mode: "timestamp" }),
+  inputSchema: text("input_schema"),
+  tags: text("tags").notNull().default("[]"),
+  slug: text("slug")
 }, (t) => ({
   byAuthorActive: index("idx_skills_author_active").on(t.authorUserId, t.deletedAt),
-  byPublic: index("idx_skills_public_published").on(t.isPublic, t.publishedAt)
+  byPublic: index("idx_skills_public_published").on(t.isPublic, t.publishedAt),
+  bySlug: uniqueIndex("idx_skills_slug").on(t.slug).where(sql`${t.slug} IS NOT NULL`)
 }));
 
 export const conversations = sqliteTable("conversations", {
