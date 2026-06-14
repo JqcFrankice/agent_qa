@@ -8,6 +8,7 @@ declare module "fastify" {
       id: number;
       username: string;
       createdAt: Date;
+      role: "user" | "admin";
     };
   }
 }
@@ -21,7 +22,8 @@ export function sessionMiddleware(sessions: SessionRepository) {
     request.user = {
       id: row.user.id,
       username: row.user.username,
-      createdAt: row.user.createdAt
+      createdAt: row.user.createdAt,
+      role: row.user.role
     };
   };
 }
