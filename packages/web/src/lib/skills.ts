@@ -1,4 +1,4 @@
-import type { SkillDto, SkillDraftDto } from "@server-agent/shared";
+import type { SkillDto, SkillDraftDto, SkillInputField } from "@server-agent/shared";
 import { ApiError, type ApiErrorBody } from "./api.js";
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
@@ -25,6 +25,8 @@ export interface SkillInput {
   defaultProvider?: string;
   defaultModel?: string;
   isPublic?: boolean;
+  inputSchema?: SkillInputField[] | null;
+  tags?: string[];
 }
 
 export function listSkills() {
