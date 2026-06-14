@@ -3,6 +3,7 @@ import { createTestDb } from "../helpers/test-db.js";
 import { runAdminCli } from "../../../../scripts/admin-cli.js";
 import { InviteRepository } from "../../src/db/repositories/invites.js";
 import { SessionRepository } from "../../src/db/repositories/sessions.js";
+import { SkillsRepository } from "../../src/db/repositories/skills.js";
 import { UserRepository } from "../../src/db/repositories/users.js";
 
 describe("admin CLI", () => {
@@ -86,5 +87,67 @@ describe("admin CLI", () => {
     const r = await runAdminCli(["preset", "import", file], { db });
     expect(r.exitCode).not.toBe(0);
     expect(r.stderr).toMatch(/title|invalid|required/i);
+  });
+
+  it("user grant-admin sets role to admin; revoke-admin sets back to user", async () => {
+    const db = createTestDb();
+    const users = new UserRepository(db);
+    await users.create("alice", "hash");
+    const grant = await runAdminCli(["user", "grant-admin", "alice"], { db });
+    expect(grant.exitCode).toBe(0);
+    expect(grant.stdout).toMatch(/granted|admin/i);
+    expect((await users.findByUsername("alice"))?.role).toBe("admin");
+
+    const revoke = await runAdminCli(["user", "revoke-admin", "alice"], { db });
+    expect(revoke.exitCode).toBe(0);
+    expect((await users.findByUsername("alice"))?.role).toBe("user");
+  });
+
+  it("skill list-pending prints id, title, author for pending skills", async () => {
+    const db = createTestDb();
+    const users = new UserRepository(db);
+    const alice = await users.create("alice", "hash");
+    const skillsRepo = new SkillsRepository(db);
+    const s = await skillsRepo.create(alice.id, { title: "Pending Skill", systemPrompt: "p" });
+    await skillsRepo.publish(s.id, alice.id);
+
+    const r = await runAdminCli(["skill", "list-pending"], { db });
+    expect(r.exitCode).toBe(0);
+    expect(r.stdout).toContain(String(s.id));
+    expect(r.stdout).toContain("Pending Skill");
+    expect(r.stdout).toContain("alice");
+  });
+
+  it("skill approve <id> sets approved", async () => {
+    const db = createTestDb();
+    const users = new UserRepository(db);
+    const alice = await users.create("alice", "hash");
+    await users.create("boss", "hash");
+    await users.setRole("boss", "admin");
+    const skillsRepo = new SkillsRepository(db);
+    const s = await skillsRepo.create(alice.id, { title: "P", systemPrompt: "p" });
+    await skillsRepo.publish(s.id, alice.id);
+
+    const r = await runAdminCli(["skill", "approve", String(s.id)], { db });
+    expect(r.exitCode).toBe(0);
+    const after = await skillsRepo.findById(s.id, alice.id);
+    expect(after?.reviewStatus).toBe("approved");
+  });
+
+  it("skill reject <id> --reason '...' sets rejected", async () => {
+    const db = createTestDb();
+    const users = new UserRepository(db);
+    const alice = await users.create("alice", "hash");
+    await users.create("boss", "hash");
+    await users.setRole("boss", "admin");
+    const skillsRepo = new SkillsRepository(db);
+    const s = await skillsRepo.create(alice.id, { title: "P", systemPrompt: "p" });
+    await skillsRepo.publish(s.id, alice.id);
+
+    const r = await runAdminCli(["skill", "reject", String(s.id), "--reason", "敏感词命中"], { db });
+    expect(r.exitCode).toBe(0);
+    const after = await skillsRepo.findById(s.id, alice.id);
+    expect(after?.reviewStatus).toBe("rejected");
+    expect(after?.rejectReason).toBe("敏感词命中");
   });
 });

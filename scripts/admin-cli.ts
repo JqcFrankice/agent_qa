@@ -3,7 +3,7 @@ import { Command } from "commander";
 import { readFileSync } from "node:fs";
 import { stdin as input } from "node:process";
 import { z } from "zod";
-import { skillInputSchemaSchema, skillTagsSchema } from "@server-agent/shared";
+import { skillInputSchemaSchema, skillTagsSchema, rejectSkillRequestSchema } from "@server-agent/shared";
 import type { AppDb } from "../packages/server/src/db/client.js";
 import { openDatabase } from "../packages/server/src/db/client.js";
 import { newInviteCode } from "../packages/server/src/crypto/invite-code.js";
@@ -91,6 +91,20 @@ export async function runAdminCli(argv: string[], deps?: Partial<AdminCliDeps>):
     await new UserRepository(db).deleteByUsername(username);
     out(`deleted ${username}`);
   });
+  user.command("grant-admin").argument("<username>").action(async (username: string) => {
+    const repo = new UserRepository(db);
+    const u = await repo.findByUsername(username);
+    if (!u) throw new Error("user not found");
+    await repo.setRole(username, "admin");
+    out(`admin role granted to ${username}`);
+  });
+  user.command("revoke-admin").argument("<username>").action(async (username: string) => {
+    const repo = new UserRepository(db);
+    const u = await repo.findByUsername(username);
+    if (!u) throw new Error("user not found");
+    await repo.setRole(username, "user");
+    out(`admin role revoked from ${username}`);
+  });
 
   const preset = program.command("preset");
   preset.command("import")
@@ -133,12 +147,60 @@ export async function runAdminCli(argv: string[], deps?: Partial<AdminCliDeps>):
           defaultModel: item.defaultModel ?? null,
           inputSchema: item.inputSchema ?? null,
           tags: item.tags ?? [],
-          isPublic: opts.public
+          isPublic: opts.public,
+          reviewStatus: "approved"
         });
         if (before) updated++;
         else inserted++;
       }
       out(`inserted: ${inserted}, updated: ${updated}`);
+    });
+
+  const skill = program.command("skill");
+
+  skill.command("list-pending").action(async () => {
+    const skillsRepo = new SkillsRepository(db);
+    const userRepo = new UserRepository(db);
+    const rows = await skillsRepo.listPending();
+    if (rows.length === 0) {
+      out("(no pending skills)");
+      return;
+    }
+    const authorIds = Array.from(new Set(rows.map((r) => r.authorUserId)));
+    const usersById = await userRepo.findManyByIds(authorIds);
+    for (const r of rows) {
+      const author = usersById.get(r.authorUserId)?.username ?? "?";
+      out(`${r.id}\t${r.title}\t@${author}\tpublished=${r.publishedAt?.toISOString() ?? "-"}`);
+    }
+  });
+
+  async function getAdminActorId(): Promise<number> {
+    const adminUser = (await new UserRepository(db).list()).find((u) => u.role === "admin");
+    if (!adminUser) throw new Error("no admin user; create one with grant-admin first");
+    return adminUser.id;
+  }
+
+  skill.command("approve").argument("<id>").action(async (idStr: string) => {
+    const id = Number.parseInt(idStr, 10);
+    if (!Number.isFinite(id)) throw new Error("id must be integer");
+    const adminId = await getAdminActorId();
+    const row = await new SkillsRepository(db).approve(id, adminId);
+    if (!row) throw new Error("skill not found");
+    out(`approved skill ${id}`);
+  });
+
+  skill.command("reject")
+    .argument("<id>")
+    .requiredOption("--reason <reason>", "rejection reason")
+    .action(async (idStr: string, opts: { reason: string }) => {
+      const id = Number.parseInt(idStr, 10);
+      if (!Number.isFinite(id)) throw new Error("id must be integer");
+      const parsed = rejectSkillRequestSchema.safeParse({ reason: opts.reason });
+      if (!parsed.success) throw new Error("reason: " + parsed.error.issues[0].message);
+      const adminId = await getAdminActorId();
+      const row = await new SkillsRepository(db).reject(id, adminId, parsed.data.reason);
+      if (!row) throw new Error("skill not found");
+      out(`rejected skill ${id}: ${parsed.data.reason}`);
     });
 
   try {
