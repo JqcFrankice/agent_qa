@@ -40,4 +40,8 @@ export class UserRepository {
   async updatePassword(username: string, passwordHash: string) {
     await this.db.update(users).set({ passwordHash }).where(eq(users.username, username));
   }
+
+  async setRole(username: string, role: "user" | "admin") {
+    await this.db.update(users).set({ role }).where(eq(users.username, username));
+  }
 }
