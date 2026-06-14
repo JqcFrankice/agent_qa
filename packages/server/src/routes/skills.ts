@@ -30,6 +30,11 @@ interface SkillRow {
   inputSchema: string | null;
   tags: string;
   slug: string | null;
+  reviewStatus: "pending" | "approved" | "rejected";
+  rejectReason: string | null;
+  version: number;
+  reviewedAt: Date | null;
+  reviewedBy: number | null;
 }
 
 const SYSTEM_USERNAME = "system";
@@ -51,7 +56,10 @@ function toDto(row: SkillRow, currentUserId: number, authorUsername: string) {
     inputSchema: row.inputSchema ? JSON.parse(row.inputSchema) : null,
     tags: JSON.parse(row.tags),
     slug: row.slug,
-    isSystem: authorUsername === SYSTEM_USERNAME
+    isSystem: authorUsername === SYSTEM_USERNAME,
+    reviewStatus: row.reviewStatus,
+    rejectReason: row.rejectReason,
+    version: row.version
   };
 }
 

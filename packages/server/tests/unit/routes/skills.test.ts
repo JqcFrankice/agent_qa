@@ -201,4 +201,26 @@ describe("skills routes", () => {
     expect(skill.isSystem).toBe(false);
     await app.close();
   });
+
+  it("author can see own rejected skills via GET /api/skills", async () => {
+    const { app, db, cookie } = await buildLoggedInApp("alice");
+    const { UserRepository } = await import("../../../src/db/repositories/users.js");
+    const { SkillsRepository } = await import("../../../src/db/repositories/skills.js");
+    const aliceId = (await new UserRepository(db).findByUsername("alice"))!.id;
+    const userRepo = new UserRepository(db);
+    let sys = await userRepo.findByUsername("system");
+    if (!sys) sys = await userRepo.create("system", "!disabled");
+    const repo = new SkillsRepository(db);
+    const s = await repo.create(aliceId, { title: "MyRejected", systemPrompt: "p" });
+    await repo.publish(s.id, aliceId);
+    await repo.reject(s.id, sys.id, "test rejection");
+
+    const list = await app.inject({ method: "GET", url: "/api/skills", headers: { cookie } });
+    expect(list.statusCode).toBe(200);
+    const found = list.json().skills.find((sk: { id: number }) => sk.id === s.id);
+    expect(found).toBeDefined();
+    expect(found.reviewStatus).toBe("rejected");
+    expect(found.rejectReason).toBe("test rejection");
+    await app.close();
+  });
 });
