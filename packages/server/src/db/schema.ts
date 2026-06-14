@@ -6,7 +6,8 @@ export const users = sqliteTable("users", {
   username: text("username").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
-  defaultProvider: text("default_provider")
+  defaultProvider: text("default_provider"),
+  role: text("role", { enum: ["user", "admin"] }).notNull().default("user")
 });
 
 export const sessions = sqliteTable("sessions", {
@@ -46,11 +47,17 @@ export const skills = sqliteTable("skills", {
   deletedAt: integer("deleted_at", { mode: "timestamp" }),
   inputSchema: text("input_schema"),
   tags: text("tags").notNull().default("[]"),
-  slug: text("slug")
+  slug: text("slug"),
+  reviewStatus: text("review_status", { enum: ["pending", "approved", "rejected"] }).notNull().default("pending"),
+  rejectReason: text("reject_reason"),
+  version: integer("version").notNull().default(1),
+  reviewedAt: integer("reviewed_at", { mode: "timestamp" }),
+  reviewedBy: integer("reviewed_by").references(() => users.id)
 }, (t) => ({
   byAuthorActive: index("idx_skills_author_active").on(t.authorUserId, t.deletedAt),
   byPublic: index("idx_skills_public_published").on(t.isPublic, t.publishedAt),
-  bySlug: uniqueIndex("idx_skills_slug").on(t.slug).where(sql`${t.slug} IS NOT NULL`)
+  bySlug: uniqueIndex("idx_skills_slug").on(t.slug).where(sql`${t.slug} IS NOT NULL`),
+  byReviewStatus: index("idx_skills_review_status").on(t.reviewStatus, t.isPublic).where(sql`${t.deletedAt} IS NULL`)
 }));
 
 export const conversations = sqliteTable("conversations", {
