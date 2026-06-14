@@ -32,6 +32,7 @@ export interface User {
   id: number;
   username: string;
   createdAt: string;
+  role: "user" | "admin";
 }
 
 export function login(input: { username: string; password: string }) {
