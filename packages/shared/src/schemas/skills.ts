@@ -58,6 +58,14 @@ export const extractSkillRequestSchema = z.object({
   conversationId: z.string().min(1)
 });
 
+export const skillReviewStatusSchema = z.enum(["pending", "approved", "rejected"]);
+
+export const approveSkillRequestSchema = z.object({});
+
+export const rejectSkillRequestSchema = z.object({
+  reason: z.string().trim().min(1).max(280)
+});
+
 export interface SkillDto {
   id: number;
   title: string;
@@ -75,6 +83,9 @@ export interface SkillDto {
   tags: string[];
   slug: string | null;
   isSystem: boolean;
+  reviewStatus: "pending" | "approved" | "rejected";
+  rejectReason: string | null;
+  version: number;
 }
 
 export interface SkillDraftDto {
