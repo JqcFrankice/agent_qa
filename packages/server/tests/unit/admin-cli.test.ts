@@ -40,4 +40,51 @@ describe("admin CLI", () => {
     expect(del.exitCode).toBe(0);
     expect(await users.findByUsername("alice")).toBeNull();
   });
+
+  it("preset import: inserts on first run, updates on second run (idempotent)", async () => {
+    const db = createTestDb();
+    const { writeFileSync, mkdtempSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    const dir = mkdtempSync(join(tmpdir(), "preset-test-"));
+    const file = join(dir, "qa.json");
+    writeFileSync(file, JSON.stringify([
+      { slug: "qa-x", title: "X v1", description: "", tags: ["qa"], systemPrompt: "p1" }
+    ]));
+
+    const r1 = await runAdminCli(["preset", "import", file], { db });
+    expect(r1.exitCode).toBe(0);
+    expect(r1.stdout).toMatch(/inserted: 1/);
+    expect(r1.stdout).toMatch(/updated: 0/);
+
+    writeFileSync(file, JSON.stringify([
+      { slug: "qa-x", title: "X v2", description: "", tags: ["qa"], systemPrompt: "p2" }
+    ]));
+    const r2 = await runAdminCli(["preset", "import", file], { db });
+    expect(r2.exitCode).toBe(0);
+    expect(r2.stdout).toMatch(/inserted: 0/);
+    expect(r2.stdout).toMatch(/updated: 1/);
+
+    const { SkillsRepository } = await import("../../src/db/repositories/skills.js");
+    const repo = new SkillsRepository(db);
+    const found = await repo.findBySlug("qa-x");
+    expect(found?.title).toBe("X v2");
+    expect(found?.systemPrompt).toBe("p2");
+    expect(found?.isPublic).toBe(1);
+  });
+
+  it("preset import: rejects malformed JSON with clear error", async () => {
+    const db = createTestDb();
+    const { writeFileSync, mkdtempSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    const dir = mkdtempSync(join(tmpdir(), "preset-bad-"));
+    const file = join(dir, "bad.json");
+    writeFileSync(file, JSON.stringify([
+      { slug: "x", description: "", systemPrompt: "p" }
+    ]));
+    const r = await runAdminCli(["preset", "import", file], { db });
+    expect(r.exitCode).not.toBe(0);
+    expect(r.stderr).toMatch(/title|invalid|required/i);
+  });
 });
