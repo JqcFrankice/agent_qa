@@ -6,6 +6,7 @@ import type { AppDb } from "./db/client.js";
 import { openDatabase } from "./db/client.js";
 import { markStreamingMessagesAborted } from "./db/cleanup.js";
 import { SessionRepository } from "./db/repositories/sessions.js";
+import { SkillsRepository } from "./db/repositories/skills.js";
 import { loadConfig } from "./config.js";
 import { logger } from "./logger.js";
 import { sessionMiddleware } from "./middleware/session.js";
@@ -14,6 +15,7 @@ import type { ProviderAdapter } from "./providers/types.js";
 import authRoutes from "./routes/auth/index.js";
 import conversationRoutes from "./routes/conversations.js";
 import messageRoutes from "./routes/messages.js";
+import skillsRoutes from "./routes/skills.js";
 import healthRoute from "./routes/health.js";
 import versionRoute from "./routes/version.js";
 import indexRoute from "./routes/index.js";
@@ -53,7 +55,8 @@ export async function buildApp(options: BuildAppOptions = {}) {
     db,
     secureCookies: config.nodeEnv === "production"
   });
-  await app.register(conversationRoutes, { prefix: "/api", db });
+  await app.register(conversationRoutes, { prefix: "/api", db, skills: new SkillsRepository(db) });
+  await app.register(skillsRoutes, { prefix: "/api", db });
   await app.register(messageRoutes, {
     prefix: "/api",
     db,

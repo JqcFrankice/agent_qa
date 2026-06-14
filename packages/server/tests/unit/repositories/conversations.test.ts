@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createTestDb } from "../../helpers/test-db.js";
 import { UserRepository } from "../../../src/db/repositories/users.js";
 import { ConversationsRepository } from "../../../src/db/repositories/conversations.js";
+import { SkillsRepository } from "../../../src/db/repositories/skills.js";
 
 async function insertTestUser(db: ReturnType<typeof createTestDb>, name: string) {
   return new UserRepository(db).create(name, "hash");
@@ -34,5 +35,21 @@ describe("ConversationsRepository", () => {
     expect((await repo.findById(conv.id, userA.id))?.id).toBe(conv.id);
     await repo.softDelete(conv.id, userA.id);
     expect(await repo.findById(conv.id, userA.id)).toBeNull();
+  });
+
+  it("creates with skillId and snapshots systemPrompt", async () => {
+    const db = createTestDb();
+    const convRepo = new ConversationsRepository(db);
+    const skillsRepo = new SkillsRepository(db);
+    const alice = await insertTestUser(db, "alice");
+    const skill = await skillsRepo.create(alice.id, { title: "t", systemPrompt: "p" });
+    const conv = await convRepo.create(alice.id, {
+      provider: "aiwoo-claude",
+      model: "claude-opus-4-8",
+      systemPrompt: "snapshot prompt",
+      skillId: skill.id
+    });
+    expect(conv.skillId).toBe(skill.id);
+    expect(conv.systemPrompt).toBe("snapshot prompt");
   });
 });

@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Send, Square } from "lucide-react";
+import { BookmarkPlus, Send, Square } from "lucide-react";
 import { Button } from "../../components/ui/button.js";
 import { Textarea } from "../../components/ui/textarea.js";
 
@@ -8,9 +8,10 @@ interface ComposerProps {
   disabled?: boolean;
   onSend: (content: string) => void;
   onStop: () => void;
+  onSaveSkill?: () => void;
 }
 
-export function Composer({ isStreaming, disabled, onSend, onStop }: ComposerProps) {
+export function Composer({ isStreaming, disabled, onSend, onStop, onSaveSkill }: ComposerProps) {
   const [value, setValue] = useState("");
   const ref = useRef<HTMLTextAreaElement>(null);
 
@@ -53,6 +54,17 @@ export function Composer({ isStreaming, disabled, onSend, onStop }: ComposerProp
           }}
           onKeyDown={onKeyDown}
         />
+        {onSaveSkill && !isStreaming && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onSaveSkill}
+            aria-label="保存为 Skill"
+            title="保存为 Skill"
+          >
+            <BookmarkPlus className="h-4 w-4" />
+          </Button>
+        )}
         {isStreaming ? (
           <Button variant="destructive" size="icon" onClick={onStop} aria-label="停止">
             <Square className="h-4 w-4" />

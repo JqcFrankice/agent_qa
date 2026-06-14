@@ -6,7 +6,8 @@ export const providerIdSchema = z.enum(["aiwoo-claude", "aiwoo-codex"]);
 export const createConversationRequestSchema = z.object({
   provider: providerIdSchema,
   model: z.string().min(1),
-  systemPrompt: z.string().max(4000).optional()
+  systemPrompt: z.string().max(8000).optional(),
+  skillId: z.number().int().positive().optional()
 }).superRefine((value, ctx) => {
   if (!isKnownProviderModel(value.provider, value.model)) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["model"], message: "model is not allowed for provider" });
@@ -26,6 +27,7 @@ export interface ConversationDto {
   title: string | null;
   provider: keyof typeof PROVIDER_MODELS;
   model: string;
+  skillId: number | null;
   createdAt: string;
   updatedAt: string;
 }

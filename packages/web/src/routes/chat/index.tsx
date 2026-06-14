@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import type { ProviderId } from "@server-agent/shared";
+import type { ProviderId, SkillDraftDto, SkillDto } from "@server-agent/shared";
 import {
   createConversation,
   deleteConversation,
@@ -12,11 +12,13 @@ import {
   me,
   renameConversation
 } from "../../lib/api.js";
+import { createSkill, extractSkillFromConversation } from "../../lib/skills.js";
 import { streamMessage } from "../../lib/streamMessage.js";
 import { Sidebar } from "./Sidebar.js";
 import { MessageList, type ChatMessage } from "./MessageList.js";
 import { Composer } from "./Composer.js";
 import { NewConversationDialog } from "./NewConversationDialog.js";
+import { SaveSkillDialog } from "./SaveSkillDialog.js";
 
 interface StreamState {
   conversationId: string;
@@ -69,6 +71,16 @@ export function ChatPage() {
   const meQuery = useQuery({ queryKey: ["me"], queryFn: me, retry: false });
   const [activeId, setActiveId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [skillForNew, setSkillForNew] = useState<SkillDto | null>(null);
+  // editSkill: 编辑 skill 的 dialog UI 留给后续 phase 完成；此处仅占位 state
+  const [, setEditSkill] = useState<SkillDto | null>(null);
+  const [saveSkillOpen, setSaveSkillOpen] = useState(false);
+  const [skillDraft, setSkillDraft] = useState<SkillDraftDto | null>(null);
+
+  const handleUseSkill = useCallback((skill: SkillDto) => {
+    setSkillForNew(skill);
+    setDialogOpen(true);
+  }, []);
 
   const conversationsQuery = useQuery({ queryKey: ["conversations"], queryFn: listConversations });
   const conversations = conversationsQuery.data?.conversations ?? [];
@@ -90,6 +102,7 @@ export function ChatPage() {
       await queryClient.invalidateQueries({ queryKey: ["conversations"] });
       setActiveId(conversation.id);
       setDialogOpen(false);
+      setSkillForNew(null);
     }
   });
 
@@ -110,6 +123,28 @@ export function ChatPage() {
     mutationFn: logout,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["me"] })
   });
+
+  const saveSkillMutation = useMutation({
+    mutationFn: createSkill,
+    onSuccess: () => {
+      toast.success("Skill 已保存");
+      setSaveSkillOpen(false);
+      setSkillDraft(null);
+      void queryClient.invalidateQueries({ queryKey: ["skills"] });
+    },
+    onError: () => toast.error("保存 Skill 失败")
+  });
+
+  const openSaveSkill = async () => {
+    if (!activeId) return;
+    try {
+      const { draft } = await extractSkillFromConversation(activeId);
+      setSkillDraft(draft);
+      setSaveSkillOpen(true);
+    } catch {
+      toast.error("无法提取 Skill 草稿");
+    }
+  };
 
   if (meQuery.isLoading) return <main className="p-8">加载中...</main>;
   if (meQuery.isError || !meQuery.data) return <Navigate to="/login" replace />;
@@ -146,6 +181,8 @@ export function ChatPage() {
         onRename={(id, title) => renameMutation.mutate({ id, title })}
         onDelete={(id) => deleteMutation.mutate(id)}
         onLogout={() => logoutMutation.mutate()}
+        onUseSkill={handleUseSkill}
+        onEditSkill={setEditSkill}
       />
       <main className="flex flex-1 flex-col">
         {activeId ? (
@@ -155,7 +192,12 @@ export function ChatPage() {
               streamingContent={streamingForActive ? stream.content : undefined}
               isStreaming={streamingForActive}
             />
-            <Composer isStreaming={streamingForActive} onSend={send} onStop={stop} />
+            <Composer
+              isStreaming={streamingForActive}
+              onSend={send}
+              onStop={stop}
+              onSaveSkill={activeId ? openSaveSkill : undefined}
+            />
           </>
         ) : (
           <div className="flex flex-1 items-center justify-center text-zinc-500">
@@ -165,10 +207,24 @@ export function ChatPage() {
       </main>
       <NewConversationDialog
         open={dialogOpen}
-        onOpenChange={setDialogOpen}
+        onOpenChange={(value) => {
+          setDialogOpen(value);
+          if (!value) setSkillForNew(null);
+        }}
+        skill={skillForNew}
         onCreate={(input) =>
-          createMutation.mutate(input as { provider: ProviderId; model: string; systemPrompt?: string })
+          createMutation.mutate(input as { provider: ProviderId; model: string; systemPrompt?: string; skillId?: number })
         }
+      />
+      <SaveSkillDialog
+        open={saveSkillOpen}
+        draft={skillDraft}
+        isSubmitting={saveSkillMutation.isPending}
+        onOpenChange={(value) => {
+          setSaveSkillOpen(value);
+          if (!value) setSkillDraft(null);
+        }}
+        onSubmit={(input) => saveSkillMutation.mutate(input)}
       />
     </div>
   );
