@@ -7,7 +7,7 @@
 - Agent 协作 / 运维手册：[`AGENTS.md`](./AGENTS.md)
 - Spec / Plan：`docs/superpowers/specs/`、`docs/superpowers/plans/`
 
-## 当前状态：Phase 3（Skill 沉淀流水线）已上线
+## 当前状态：Phase 4（QA-AGENT 模式）已上线
 
 已交付：
 
@@ -130,8 +130,8 @@ npm run admin -- user delete <username>
 | 2a | done | HTTPS + 账号系统 + 持久化 |
 | 2b | **done** | 聊天核心 MVP（aiwoo claude/codex provider + SSE + /chat UI） |
 | 3 | **done** | Skill 沉淀流水线：保存对话为 skill / 选用 skill 新建会话 / 个人+可发布存储 |
-| 4 | **next** | QA-AGENT 模式：参数化 skill（input schema）+ 内置 QA preset（bug 复现 / 用例生成 / 回归清单） |
-| 5 | planned | Skill 审核流：pending/approved 状态机 + 版本管理 + admin UI |
+| 4 | **done** | QA-AGENT 模式：参数化 skill（input schema）+ 内置 QA preset（bug 复现 / 用例生成 / 回归清单） |
+| 5 | **next** | Skill 审核流：pending/approved 状态机 + 版本管理 + admin UI |
 | 6 | planned | 前端打磨（响应式 / 搜索 / 多模态）+ provider 抽象通用化（adapter registry / 多 key 轮询 / 用量） |
 
 每个 Phase 都先在 `docs/superpowers/specs/` 落地 spec、再 `docs/superpowers/plans/` 落地 plan，最后才动代码。

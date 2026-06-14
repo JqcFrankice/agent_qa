@@ -8,7 +8,7 @@
 - 仓库：[`JqcFrankice/agent_qa`](https://github.com/JqcFrankice/agent_qa)，分支：`main`（生产单分支）
 - 生产入口：`https://aicoolyun.vip`（Caddy v2 → React SPA + `/api/*` 反代 `127.0.0.1:8080`）
 - 服务器：阿里云 ECS `root@43.108.21.46`（Ubuntu 24.04），systemd 跑 `server-agent.service`
-- 当前 Phase：**3 Skill 沉淀已上线**（保存对话为 skill / 公开私有切换 / 选 skill 建会话 / system_prompt 快照）
+- 当前 Phase：**4 QA-AGENT 模式已上线**（参数化 skill / 动态表单 / `{{var}}` 插值 / 3 条内置 QA preset / tag chip filter）
 - 部署：push to `main` → GitHub Actions → SSH → `/usr/local/bin/deploy-agent`（pinned）
 - 数据：SQLite 单文件 `/var/lib/server-agent/db/main.sqlite`，每天 02:00 自动备份
 
@@ -324,8 +324,8 @@ gh pr merge <n> --merge
 | 2a | done | HTTPS + 账号系统 + 持久化（邀请码 + argon2 + cookie session） |
 | 2b | **done** | 聊天核心 MVP（aiwoo claude/codex provider + SSE + /chat UI） |
 | 3 | **done** | Skill 沉淀流水线：保存对话为 skill / 选用 skill 新建会话 / 个人+可发布存储 |
-| 4 | **next** | QA-AGENT 模式：参数化 skill（input schema）+ 内置 QA preset |
-| 5 | planned | Skill 审核流：pending/approved + 版本管理 + admin UI |
+| 4 | **done** | QA-AGENT 模式：参数化 skill（input schema）+ 内置 QA preset |
+| 5 | **next** | Skill 审核流：pending/approved + 版本管理 + admin UI |
 | 6 | planned | 前端打磨 + provider 抽象通用化 |
 
 每个 Phase 先 spec 后 plan 再代码，三件套都进 `docs/superpowers/`。
