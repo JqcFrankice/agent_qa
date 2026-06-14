@@ -197,6 +197,7 @@ export function ChatPage() {
         isLoading={conversationsQuery.isLoading}
         activeId={activeId}
         username={meQuery.data.user.username}
+        userRole={meQuery.data.user.role}
         onSelect={selectConversation}
         onNew={() => setDialogOpen(true)}
         onRename={(id, title) => renameMutation.mutate({ id, title })}

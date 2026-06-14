@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Plus, LogOut } from "lucide-react";
+import { Link } from "react-router-dom";
 import type { SkillDto } from "@server-agent/shared";
 import type { ConversationDto } from "../../lib/api.js";
 import { Button } from "../../components/ui/button.js";
@@ -12,6 +13,7 @@ interface SidebarProps {
   isLoading: boolean;
   activeId: string | null;
   username: string;
+  userRole?: "user" | "admin";
   onSelect: (id: string) => void;
   onNew: () => void;
   onRename: (id: string, title: string) => void;
@@ -26,6 +28,7 @@ export function Sidebar({
   isLoading,
   activeId,
   username,
+  userRole,
   onSelect,
   onNew,
   onRename,
@@ -86,7 +89,14 @@ export function Sidebar({
         )}
       </div>
       <div className="flex items-center justify-between border-t border-zinc-800 p-3">
-        <span className="truncate text-sm text-zinc-400">{username}</span>
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="truncate text-sm text-zinc-400">{username}</span>
+          {userRole === "admin" ? (
+            <Link to="/admin/skills" className="text-xs text-zinc-500 hover:text-zinc-300">
+              审核中心
+            </Link>
+          ) : null}
+        </div>
         <Button variant="ghost" size="icon" aria-label="登出" onClick={onLogout}>
           <LogOut className="h-4 w-4" />
         </Button>
