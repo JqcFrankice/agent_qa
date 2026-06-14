@@ -4,7 +4,10 @@ import { UserRepository } from "../../../src/db/repositories/users.js";
 import { SkillsRepository } from "../../../src/db/repositories/skills.js";
 
 async function user(db: ReturnType<typeof createTestDb>, name: string) {
-  return new UserRepository(db).create(name, "hash");
+  const repo = new UserRepository(db);
+  const existing = await repo.findByUsername(name);
+  if (existing) return existing;
+  return repo.create(name, "hash");
 }
 
 describe("SkillsRepository", () => {
@@ -72,5 +75,50 @@ describe("SkillsRepository", () => {
     expect(await repo.update(skill.id, bob.id, { title: "hijack" })).toBeNull();
     const updated = await repo.update(skill.id, alice.id, { title: "renamed" });
     expect(updated?.title).toBe("renamed");
+  });
+
+  it("upsertBySlug inserts new skill on first call", async () => {
+    const db = createTestDb();
+    const repo = new SkillsRepository(db);
+    const author = await user(db, "system");
+    const row = await repo.upsertBySlug(author.id, {
+      slug: "qa-bug-repro",
+      title: "Bug 复现",
+      description: "desc",
+      systemPrompt: "You are QA.",
+      inputSchema: [{ name: "bug_id", label: "Bug ID", type: "text" }],
+      tags: ["qa"],
+      isPublic: true
+    });
+    expect(row.slug).toBe("qa-bug-repro");
+    expect(row.title).toBe("Bug 复现");
+    expect(row.isPublic).toBe(1);
+    expect(row.publishedAt).toBeInstanceOf(Date);
+    expect(JSON.parse(row.tags)).toEqual(["qa"]);
+  });
+
+  it("upsertBySlug updates existing skill on second call with same slug", async () => {
+    const db = createTestDb();
+    const repo = new SkillsRepository(db);
+    const author = await user(db, "system");
+    const first = await repo.upsertBySlug(author.id, {
+      slug: "qa-bug-repro", title: "v1", description: "", systemPrompt: "p1"
+    });
+    const second = await repo.upsertBySlug(author.id, {
+      slug: "qa-bug-repro", title: "v2", description: "new", systemPrompt: "p2"
+    });
+    expect(second.id).toBe(first.id);
+    expect(second.title).toBe("v2");
+    expect(second.systemPrompt).toBe("p2");
+  });
+
+  it("upsertBySlug rejects different author for same slug", async () => {
+    const db = createTestDb();
+    const repo = new SkillsRepository(db);
+    const sys = await user(db, "system");
+    const alice = await user(db, "alice");
+    await repo.upsertBySlug(sys.id, { slug: "shared", title: "t", description: "", systemPrompt: "p" });
+    await expect(repo.upsertBySlug(alice.id, { slug: "shared", title: "t2", description: "", systemPrompt: "p2" }))
+      .rejects.toThrow();
   });
 });
