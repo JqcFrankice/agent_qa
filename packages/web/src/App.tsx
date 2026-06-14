@@ -5,6 +5,7 @@ import { me } from "./lib/api.js";
 import { ChatPage } from "./routes/chat/index.js";
 import { LoginPage } from "./routes/login.js";
 import { RegisterPage } from "./routes/register.js";
+import { AdminSkillsPage } from "./routes/admin/skills.js";
 
 function RootRedirect() {
   const { data, isLoading } = useQuery({ queryKey: ["me"], queryFn: me, retry: false });
@@ -21,6 +22,7 @@ export function App() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/home" element={<Navigate to="/chat" replace />} />
         <Route path="/chat" element={<ChatPage />} />
+        <Route path="/admin/skills" element={<AdminSkillsPage />} />
       </Routes>
       <Toaster theme="dark" position="top-center" />
     </>
