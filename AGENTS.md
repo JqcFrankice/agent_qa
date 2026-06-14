@@ -8,7 +8,7 @@
 - 仓库：[`JqcFrankice/agent_qa`](https://github.com/JqcFrankice/agent_qa)，分支：`main`（生产单分支）
 - 生产入口：`https://aicoolyun.vip`（Caddy v2 → React SPA + `/api/*` 反代 `127.0.0.1:8080`）
 - 服务器：阿里云 ECS `root@43.108.21.46`（Ubuntu 24.04），systemd 跑 `server-agent.service`
-- 当前 Phase：**2b 聊天核心 MVP 已上线**（多会话、aiwoo claude/codex 流式、SSE）
+- 当前 Phase：**3 Skill 沉淀已上线**（保存对话为 skill / 公开私有切换 / 选 skill 建会话 / system_prompt 快照）
 - 部署：push to `main` → GitHub Actions → SSH → `/usr/local/bin/deploy-agent`（pinned）
 - 数据：SQLite 单文件 `/var/lib/server-agent/db/main.sqlite`，每天 02:00 自动备份
 
@@ -259,6 +259,24 @@ gh pr merge <n> --merge
 
 `.claude/worktrees/` 已默认被 git 忽略（`.claude/` 没 ignore 但 worktree 在内部不会污染主仓）。
 
+### 6.9 Drizzle schema 表声明顺序：被引用的表先声明
+
+`packages/server/src/db/schema.ts` 里如果 A 表 `references(() => B.id)`，**必须** B 在 A 之前声明，否则只能写 lazy ref `(): any => B.id`，会触发 `@typescript-eslint/no-explicit-any` 让 lint 红。
+
+实际顺序（遵守）：`users → sessions → inviteCodes → skills → conversations → messages`。
+
+`conversations.skill_id` 引用 `skills.id`，`messages.conversation_id` 引用 `conversations.id`，按这个排就 OK。
+
+### 6.10 WAL 模式下外部 sqlite3 CLI 写入对正在跑的 server 不可见
+
+`openDatabase` 启了 `journal_mode = WAL`。如果 server 进程已经打开 DB 文件，再用 `sqlite3 /path/to/db "INSERT ..."` 命令行写入，**当前 server 进程读不到**这条新数据（cache miss + WAL coordination）。
+
+本地 e2e 想给 server 塞个 invite code 时遇到过，会一直返回 `AUTH_INVITE_INVALID`。**重启 server 即可看到**。
+
+生产部署不受影响（部署后 server 重启，migration 通过 `db:migrate` 在同一进程内应用）；只在本地 e2e 调试场景需注意。
+
+替代：用 `npm run admin -- invite create ...`（生产服务器有此 script），让 admin CLI 在自己进程里跑完再退出，server 重新打开 DB 时就看到了。
+
 ## 7. 依赖与版本
 
 | 类目 | 版本/选择 |
@@ -301,8 +319,8 @@ gh pr merge <n> --merge
 | 1 | done | 基础设施骨架（Fastify + systemd + Caddy + GH Actions 部署） |
 | 2a | done | HTTPS + 账号系统 + 持久化（邀请码 + argon2 + cookie session） |
 | 2b | **done** | 聊天核心 MVP（aiwoo claude/codex provider + SSE + /chat UI） |
-| 3 | **next** | Skill 沉淀流水线：保存对话为 skill / 选用 skill 新建会话 / 个人+可发布存储 |
-| 4 | planned | QA-AGENT 模式：参数化 skill（input schema）+ 内置 QA preset |
+| 3 | **done** | Skill 沉淀流水线：保存对话为 skill / 选用 skill 新建会话 / 个人+可发布存储 |
+| 4 | **next** | QA-AGENT 模式：参数化 skill（input schema）+ 内置 QA preset |
 | 5 | planned | Skill 审核流：pending/approved + 版本管理 + admin UI |
 | 6 | planned | 前端打磨 + provider 抽象通用化 |
 
